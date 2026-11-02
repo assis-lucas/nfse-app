@@ -1,27 +1,14 @@
-"""Testes ponta a ponta em modo MOCK (nada vai ao governo). Rode: pytest -q"""
-import os
+"""Testes ponta a ponta em modo MOCK (nada vai ao governo). Rode: pytest -q
+O ambiente (DATA_DIR temporário, certificado de teste, NFSE_MOCK=1) é montado em conftest.py."""
 import re
-import subprocess
-import tempfile
 from datetime import date
 
 import pytest
+from fastapi.testclient import TestClient
 
-TMP = tempfile.mkdtemp()
-os.environ.update(DATA_DIR=TMP, NFSE_MOCK="1", SECRET_KEY="x" * 32)
-
-CERT = os.path.join(TMP, "teste.pfx")
-subprocess.run(f"openssl req -x509 -newkey rsa:2048 -keyout {TMP}/k.pem -out {TMP}/c.pem -days 30 "
-               f"-nodes -subj '/CN=EMPRESA TESTE:12345678000195' 2>/dev/null && openssl pkcs12 -export "
-               f"-inkey {TMP}/k.pem -in {TMP}/c.pem -out {CERT} -passout pass:1234",
-               shell=True, check=True)
-os.environ.update(NFSE_CERT_PATH=CERT, NFSE_CERT_SENHA="1234")
-
-from fastapi.testclient import TestClient  # noqa: E402
-
-from app.db import Prestador, Tomador  # noqa: E402
-from app.dps import montar_dps, validar_xsd  # noqa: E402
-from app.main import app  # noqa: E402
+from app.db import Prestador, Tomador
+from app.dps import montar_dps, validar_xsd
+from app.main import app
 
 
 def _exportacao():
