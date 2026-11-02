@@ -1,0 +1,102 @@
+"""Testes ponta a ponta em modo MOCK (nada vai ao governo). Rode: pytest -q"""
+import os
+import re
+import subprocess
+import tempfile
+from datetime import date
+
+import pytest
+
+TMP = tempfile.mkdtemp()
+os.environ.update(DATA_DIR=TMP, NFSE_MOCK="1", APP_PASSWORD="segredo", SECRET_KEY="x" * 32)
+
+CERT = os.path.join(TMP, "teste.pfx")
+subprocess.run(f"openssl req -x509 -newkey rsa:2048 -keyout {TMP}/k.pem -out {TMP}/c.pem -days 30 "
+               f"-nodes -subj '/CN=EMPRESA TESTE:12345678000195' 2>/dev/null && openssl pkcs12 -export "
+               f"-inkey {TMP}/k.pem -in {TMP}/c.pem -out {CERT} -passout pass:1234",
+               shell=True, check=True)
+os.environ.update(NFSE_CERT_PATH=CERT, NFSE_CERT_SENHA="1234")
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.db import Prestador, Tomador  # noqa: E402
+from app.dps import montar_dps, validar_xsd  # noqa: E402
+from app.main import app  # noqa: E402
+
+
+def _exportacao():
+    p = Prestador(cnpj="12345678000195", cod_municipio="3550308", op_simp_nac=3, ambiente="producao")
+    t = Tomador(nome="ACME Inc.", tipo_doc="NIF", documento="12-3456789", end_tipo="exterior",
+                end_pais="US", end_cod_postal="94105", end_cidade="SF", end_estado="CA",
+                end_lgr="Market St", c_trib_nac="010101", c_nbs="115021000", trib_issqn=3,
+                c_pais_result="US", p_tot_trib_sn="6.00", com_ext=True)
+    return p, t
+
+
+def test_dps_exportacao_valida_no_xsd():
+    p, t = _exportacao()
+    xml = montar_dps(p, t, ndps=1, valor="10.000,00", valor_moeda="2000", competencia=date(2026, 10, 1),
+                     descricao="x", dh_emi="2026-11-02T10:00:00-03:00")
+    assert validar_xsd(xml) == []
+    assert "<tribISSQN>3</tribISSQN><cPaisResult>US</cPaisResult>" in xml
+    assert "<vServ>10000.00</vServ>" in xml and "<vServMoeda>2000.00</vServMoeda>" in xml
+
+
+def test_nt009_move_xdescserv_e_finnfse():
+    p, t = _exportacao()
+    p.ambiente = "homologacao"
+    xml = montar_dps(p, t, ndps=1, valor="10", valor_moeda="2", competencia=date(2026, 10, 1),
+                     descricao="x", dh_emi="2026-11-02T10:00:00-03:00")
+    assert "<tpEmit>1</tpEmit><finNFSe>0</finNFSe><cLocEmi>" in xml
+    assert "<cNBS>115021000</cNBS><xDescServ>x</xDescServ>" in xml
+
+
+def test_exportacao_sem_pais_falha():
+    p, t = _exportacao()
+    t.c_pais_result = ""
+    with pytest.raises(ValueError):
+        montar_dps(p, t, ndps=1, valor="10", valor_moeda="2", competencia=date(2026, 10, 1), descricao="x")
+
+
+def test_fluxo_completo():
+    with TestClient(app) as c:
+        assert c.get("/", follow_redirects=False).status_code == 303  # exige login
+        assert c.post("/login", data={"senha": "segredo"}).status_code == 200
+        c.post("/config", data={"razao_social": "Minha LTDA", "cnpj": "12345678000195", "im": "",
+                                "cod_municipio": "3550308", "op_simp_nac": "3", "reg_ap_trib_sn": "1",
+                                "reg_esp_trib": "0", "ambiente": "homologacao", "leiaute": "auto",
+                                "serie": "1", "prox_ndps_homologacao": "1", "prox_ndps_producao": "1"})
+        form = {"id": "", "apelido": "ACME", "nome": "ACME Inc.", "tipo_doc": "NIF",
+                "documento": "12-3456789", "c_nao_nif": "0", "end_tipo": "exterior", "end_pais": "US",
+                "end_cod_postal": "94105", "end_cidade": "SF", "end_estado": "CA", "end_lgr": "Market",
+                "c_trib_nac": "010101", "c_nbs": "115021000", "trib_issqn": "3", "c_pais_result": "US",
+                "tp_ret_issqn": "1", "piscofins_cst": "08", "tot_trib_modo": "pTotTribSN",
+                "p_tot_trib_sn": "6.00", "com_ext": "1", "md_prestacao": "1", "vinc_prest": "0",
+                "tp_moeda": "220", "mec_af_comex_p": "01", "mec_af_comex_t": "01",
+                "mov_temp_bens": "1", "mdic": "0", "ativo": "1",
+                "descricao_padrao": "Software development services - {mes_nome}/{ano}"}
+        r = c.post("/tomadores/salvar", data=form)
+        assert "ACME" in r.text
+        r = c.post("/emitir/preview", data={"tomador_id": "1", "competencia": "2026-10-31",
+                                            "valor": "10.000,00", "valor_moeda": "2.000,00",
+                                            "descricao": "Software development services - {mes_nome}/{ano}"})
+        assert "outubro/2026" in r.text and "R$ 10.000,00" in r.text
+        token = re.search(r'name="token" value="(\w+)"', r.text).group(1)
+        dados = {"token": token, "tomador_id": "1", "competencia": "2026-10-31", "valor": "10.000,00",
+                 "valor_moeda": "2.000,00", "descricao": "Software development services - {mes_nome}/{ano}"}
+        r = c.post("/emitir/confirmar", data=dados)
+        assert "emitida" in r.text and "MOCK" in r.text
+        # reenvio do mesmo formulário NÃO emite de novo
+        r = c.post("/emitir/confirmar", data=dados)
+        assert "enviado duas vezes" in r.text
+        # XML assinado guardado; contador avançou
+        assert "Signature" in c.get("/notas/1/xml?tipo=dps").text
+        assert "<nDPS>2</nDPS>" not in c.get("/notas/1/xml?tipo=dps").text
+        r = c.get("/config")
+        assert 'name="prox_ndps_homologacao" value="2"' in r.text
+        # importar o XML gerado: tomador já existe, nota já existe (mesma chave) → nada novo
+        nfse = c.get("/notas/1/xml").content
+        r = c.post("/importar", files=[("arquivos", ("n.xml", nfse, "text/xml"))])
+        assert "Nada novo" in r.text
+        assert "ACME" in c.get("/notas.csv").text
+        assert c.get("/").status_code == 200

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFS-e</title>
+<link rel="stylesheet" href="/static/pico.min.css">
+<style>
+  :root { --pico-font-size: 16px; }
+  nav { margin-bottom: .5rem; }
+  .badge { padding: .1rem .5rem; border-radius: 1rem; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  .b-prod { background: #c62828; color: #fff; } .b-hom { background: #f9a825; color: #000; }
+  .b-ok { background: #2e7d32; color: #fff; } .b-erro { background: #c62828; color: #fff; }
+  .b-cancelada { background: #757575; color: #fff; } .b-imp { background: #1565c0; color: #fff; }
+  .flash-ok { border-left: 4px solid #2e7d32; padding: .6rem 1rem; background: #e8f5e9; margin-bottom: 1rem; }
+  .flash-erro { border-left: 4px solid #c62828; padding: .6rem 1rem; background: #ffebee; margin-bottom: 1rem; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+  .kpi { padding: 1rem; border: 1px solid var(--pico-muted-border-color); border-radius: .5rem; }
+  .kpi small { display: block; color: var(--pico-muted-color); } .kpi strong { font-size: 1.3rem; }
+  pre { white-space: pre-wrap; word-break: break-all; font-size: .75rem; max-height: 50vh; overflow: auto; }
+  table { font-size: .9rem; } td, th { padding: .4rem .5rem; }
+  .muted { color: var(--pico-muted-color); font-size: .85rem; }
+  fieldset legend { font-weight: 600; }
+</style>
+</head>
+<body>
+<header class="container">
+  <nav>
+    <ul><li><strong style="white-space:nowrap"><a href="/" class="contrast" style="text-decoration:none">🧾 NFS-e</a></strong></li></ul>
+    <ul>
+      <li><a href="/emitir">Emitir</a></li>
+      <li><a href="/notas">Notas</a></li>
+      <li><a href="/tomadores">Tomadores</a></li>
+      <li><a href="/config">Config</a></li>
+    </ul>
+  </nav>
+  {% if MOCK %}<p class="flash-erro">MODO MOCK ativo (NFSE_MOCK=1): nenhuma nota é enviada ao governo.</p>{% endif %}
+</header>
+<main class="container">
+  {% if flash %}<div class="flash-{{ flash.tipo }}">{{ flash.msg }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

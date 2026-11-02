@@ -1,0 +1,9 @@
+.env
+data/
+__pycache__/
+*.pfx
+*.p12
+*.db
+.venv/
+.pytest_cache/
+*:Zone.Identifier

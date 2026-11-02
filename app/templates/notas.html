@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Notas</h2>
+<form method="get" class="grid">
+  <select name="ano"><option value="">Todos os anos</option>
+    {% for a in range(2024, 2031)|reverse %}<option {{ 'selected' if a == ano }}>{{ a }}</option>{% endfor %}</select>
+  <select name="tomador_id"><option value="">Todos os tomadores</option>
+    {% for t in tomadores %}<option value="{{ t.id }}" {{ 'selected' if t.id == tomador_id }}>{{ t.apelido or t.nome }}</option>{% endfor %}</select>
+  <button type="submit" class="secondary">Filtrar</button>
+</form>
+<p><a href="/notas.csv">Baixar CSV</a> · <a href="/importar">Importar XMLs</a></p>
+{% include "_tabela_notas.html" with context %}
+{% endblock %}

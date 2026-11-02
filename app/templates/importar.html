@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Importar XML de NFS-e</h2>
+<p>No Emissor Nacional, em <em>Notas Emitidas</em>, baixe o <strong>XML</strong> de uma nota que você já emitiu
+para esse cliente (pode selecionar vários arquivos de uma vez). O app:</p>
+<ul>
+  <li>cria o tomador com <strong>todos os códigos e a tributação</strong> daquela nota (o "molde");</li>
+  <li>registra a nota no histórico (entra nos totais);</li>
+  <li>preenche os dados da sua empresa, se ainda estiverem vazios.</li>
+</ul>
+<form method="post" action="/importar" enctype="multipart/form-data">
+  <input type="file" name="arquivos" accept=".xml,text/xml" multiple required>
+  <label><input type="checkbox" name="atualizar_prestador" value="1"> Sobrescrever dados da minha empresa com os do XML</label>
+  <button type="submit">Importar</button>
+</form>
+{% endblock %}

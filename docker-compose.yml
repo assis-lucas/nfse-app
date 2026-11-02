@@ -1,0 +1,9 @@
+services:
+  nfse:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data            # banco SQLite, PDFs e o certificado (.pfx)
+    ports:
+      - "127.0.0.1:8000:8000"   # só local: acesse via Tailscale ou um proxy reverso

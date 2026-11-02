@@ -1,0 +1,22 @@
+<div class="overflow-auto">
+<table class="striped">
+  <thead><tr><th>Comp.</th><th>Tomador</th><th>Nº</th><th class="num">Valor</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for n in (notas if notas is defined else ultimas) %}
+    <tr>
+      <td>{{ n.competencia.strftime("%m/%Y") }}</td>
+      <td><a href="/notas/{{ n.id }}">{{ n.tomador_nome }}</a></td>
+      <td>{{ n.numero_nfse or "—" }}</td>
+      <td class="num">{{ n.valor_cents|brl }}</td>
+      <td>
+        <span class="badge b-{{ 'ok' if n.status == 'emitida' else n.status }}">{{ n.status }}</span>
+        {% if n.origem == "importada" %}<span class="badge b-imp">imp.</span>{% endif %}
+        {% if n.ambiente != "producao" %}<span class="badge b-hom">teste</span>{% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="muted">Nenhuma nota ainda.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{% if n.numero_nfse %}NFS-e {{ n.numero_nfse }}{% else %}Nota #{{ n.id }}{% endif %}
+  <span class="badge b-{{ 'ok' if n.status == 'emitida' else n.status }}">{{ n.status }}</span>
+  {% if n.ambiente != "producao" %}<span class="badge b-hom">teste</span>{% endif %}</h2>
+{% if n.erro_msg %}<div class="flash-erro"><strong>Retorno do SEFIN:</strong> {{ n.erro_msg }}</div>{% endif %}
+<table>
+  <tr><th>Tomador</th><td>{{ n.tomador_nome }}</td></tr>
+  <tr><th>Competência</th><td>{{ n.competencia.strftime("%d/%m/%Y") }}</td></tr>
+  <tr><th>Valor</th><td>{{ n.valor_cents|brl }}</td></tr>
+  {% if n.valor_moeda_cents %}<tr><th>Moeda estrangeira</th><td>{{ MOEDAS.get(n.tp_moeda, n.tp_moeda) }} {{ n.valor_moeda_cents|num }}</td></tr>{% endif %}
+  <tr><th>Descrição</th><td>{{ n.descricao }}</td></tr>
+  {% if n.chave %}<tr><th>Chave</th><td style="word-break:break-all">{{ n.chave }}</td></tr>{% endif %}
+  <tr><th>DPS</th><td>série {{ n.serie }} nº {{ n.ndps or "—" }}</td></tr>
+  <tr><th>Origem</th><td>{{ n.origem }} · {{ n.created_at.strftime("%d/%m/%Y %H:%M") }}</td></tr>
+</table>
+<p>
+  {% if n.xml_nfse %}<a href="/notas/{{ n.id }}/pdf" role="button">PDF (DANFSe)</a>
+  <a href="/notas/{{ n.id }}/xml" role="button" class="secondary">XML da NFS-e</a>{% endif %}
+  {% if n.xml_dps %}<a href="/notas/{{ n.id }}/xml?tipo=dps" role="button" class="outline secondary">XML da DPS</a>{% endif %}
+</p>
+{% if n.status == "emitida" %}
+<details><summary>Cancelou no Emissor Nacional?</summary>
+  <form method="post" action="/notas/{{ n.id }}/cancelada"><button class="secondary outline">Marcar como cancelada</button></form>
+</details>
+{% endif %}
+{% if n.status != "emitida" or n.origem == "importada" or n.ambiente != "producao" %}
+<form method="post" action="/notas/{{ n.id }}/excluir" onsubmit="return confirm('Remover este registro do app?')">
+  <button class="outline secondary">Remover registro</button></form>
+{% endif %}
+{% if n.status == "erro" %}<p><a href="/emitir?tomador_id={{ n.tomador_id }}">Tentar de novo</a></p>{% endif %}
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+  <h2 style="margin:0">{{ p.razao_social or "Minha empresa" }}</h2>
+  <span class="badge {{ 'b-prod' if p.ambiente == 'producao' else 'b-hom' }}">
+    {{ "PRODUÇÃO" if p.ambiente == "producao" else "HOMOLOGAÇÃO (teste)" }}</span>
+</div>
+{% if not cert.ok %}<p class="flash-erro">Certificado: {{ cert.erro }}</p>
+{% elif cert.vencido %}<p class="flash-erro">Certificado VENCIDO em {{ cert.validade }}.</p>{% endif %}
+
+{% if tomadores %}
+<p style="margin-top:1rem">
+  {% for t in tomadores %}
+  <a href="/emitir?tomador_id={{ t.id }}" role="button" style="margin:.2rem">+ Nota para {{ t.apelido or t.nome }}</a>
+  {% endfor %}
+</p>
+{% else %}
+<article>
+  <p>Comece importando o XML de uma nota que você já emitiu no Emissor Nacional: o app copia o tomador,
+  os códigos e a tributação de lá.</p>
+  <a href="/importar" role="button">Importar XML</a> <a href="/tomadores/novo?exterior=1" role="button" class="secondary">Cadastrar à mão</a>
+</article>
+{% endif %}
+
+<div class="grid-auto" style="margin:1rem 0">
+  <div class="kpi"><small>Total {{ ano }} (produção)</small><strong>{{ total_ano|brl }}</strong></div>
+  <div class="kpi"><small>Últimos 12 meses (RBT12)</small><strong>{{ rbt12|brl }}</strong></div>
+  <div class="kpi"><small>Certificado válido até</small><strong>{{ cert.validade or "—" }}</strong></div>
+</div>
+
+<details open>
+  <summary>Por mês — <form style="display:inline" method="get"><select name="ano" onchange="this.form.submit()" style="width:auto;display:inline;margin:0;padding:.1rem 2rem .1rem .5rem">
+    {% for a in anos %}<option {{ 'selected' if a == ano }}>{{ a }}</option>{% endfor %}</select></form></summary>
+  <table>
+    <tbody>
+    {% for m, nome, v in meses %}
+      <tr><td>{{ nome|capitalize }}</td><td class="num">{{ v|brl if v else "—" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</details>
+
+{% if por_tomador %}
+<details><summary>Por tomador ({{ ano }})</summary>
+  <table>{% for nome, v in por_tomador %}<tr><td>{{ nome }}</td><td class="num">{{ v|brl }}</td></tr>{% endfor %}</table>
+</details>
+{% endif %}
+
+<h4>Últimas</h4>
+{% include "_tabela_notas.html" with context %}
+{% endblock %}
