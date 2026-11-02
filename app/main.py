@@ -20,7 +20,8 @@ from . import dps as dpsmod
 from . import importer, sefin
 from .db import (DATA_DIR, Nota, Session, Tomador, get_session, init_db, prestador, select)
 
-APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
+# Assina o cookie de sessão (mensagens flash e token anti-duplicidade da emissão).
+# Opcional: sem ela, uma chave aleatória é gerada a cada início do app.
 SECRET_KEY = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
 
@@ -52,21 +53,11 @@ def cents(v) -> int:
 @asynccontextmanager
 async def lifespan(_app):
     init_db()
-    if not APP_PASSWORD:
-        print("ATENÇÃO: APP_PASSWORD vazio — o app está SEM senha.")
     yield
 
 
 app = FastAPI(title="NFS-e", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
-
-
-@app.middleware("http")
-async def auth(request: Request, call_next):
-    livre = request.url.path in ("/login", "/healthz") or request.url.path.startswith("/static/")
-    if APP_PASSWORD and not livre and not request.session.get("ok"):
-        return RedirectResponse("/login", 303)
-    return await call_next(request)
 
 
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, https_only=False,
@@ -85,27 +76,6 @@ def flash(request: Request, msg: str, tipo: str = "ok"):
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
-
-
-# ---------------------------------------------------------------- login
-@app.get("/login", response_class=HTMLResponse)
-def login_form(request: Request):
-    return render(request, "login.html")
-
-
-@app.post("/login")
-def login(request: Request, senha: str = Form(...)):
-    if APP_PASSWORD and secrets.compare_digest(senha, APP_PASSWORD):
-        request.session["ok"] = True
-        return RedirectResponse("/", 303)
-    flash(request, "Senha incorreta.", "erro")
-    return RedirectResponse("/login", 303)
-
-
-@app.get("/logout")
-def logout(request: Request):
-    request.session.clear()
-    return RedirectResponse("/login", 303)
 
 
 # ---------------------------------------------------------------- dashboard

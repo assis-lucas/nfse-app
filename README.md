@@ -26,7 +26,10 @@ A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → em
 - Antes de enviar, o app consulta se aquela DPS já virou nota (`HEAD /dps/{id}`). Se um envio
   anterior caiu no meio, ele recupera a nota em vez de duplicar.
 - O certificado e a senha ficam em variáveis de ambiente, não no banco.
-- **Não exponha a porta na internet sem proteção.** O jeito mais simples é o Tailscale (abaixo).
+- **O app não tem login.** Quem alcançar a porta consegue emitir notas com o seu certificado.
+  Por isso o `docker-compose.yml` publica só em `127.0.0.1`. **Nunca exponha a porta na internet.**
+  Para acessar de outro aparelho, use uma rede privada (o jeito mais simples é o Tailscale, abaixo)
+  ou coloque um proxy reverso com autenticação na frente.
 
 ## Rodar local
 

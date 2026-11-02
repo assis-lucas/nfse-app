@@ -8,7 +8,7 @@ from datetime import date
 import pytest
 
 TMP = tempfile.mkdtemp()
-os.environ.update(DATA_DIR=TMP, NFSE_MOCK="1", APP_PASSWORD="segredo", SECRET_KEY="x" * 32)
+os.environ.update(DATA_DIR=TMP, NFSE_MOCK="1", SECRET_KEY="x" * 32)
 
 CERT = os.path.join(TMP, "teste.pfx")
 subprocess.run(f"openssl req -x509 -newkey rsa:2048 -keyout {TMP}/k.pem -out {TMP}/c.pem -days 30 "
@@ -60,8 +60,7 @@ def test_exportacao_sem_pais_falha():
 
 def test_fluxo_completo():
     with TestClient(app) as c:
-        assert c.get("/", follow_redirects=False).status_code == 303  # exige login
-        assert c.post("/login", data={"senha": "segredo"}).status_code == 200
+        assert c.get("/", follow_redirects=False).status_code == 200
         c.post("/config", data={"razao_social": "Minha LTDA", "cnpj": "12345678000195", "im": "",
                                 "cod_municipio": "3550308", "op_simp_nac": "3", "reg_ap_trib_sn": "1",
                                 "reg_esp_trib": "0", "ambiente": "homologacao", "leiaute": "auto",
