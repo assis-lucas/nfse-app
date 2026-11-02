@@ -76,3 +76,7 @@ app/db.py         modelos (valores em centavos)
 - Cancelamento ainda é feito no Emissor Nacional; depois é só marcar como cancelada no app.
 - Só um prestador (a sua empresa). Para vários CNPJs, dá para rodar uma instância por empresa.
 - A validação XSD local só cobre o leiaute de produção. No NT 009 (homologação), quem valida é o SEFIN.
+
+## Licença
+
+[MIT](LICENSE).
