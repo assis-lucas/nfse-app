@@ -197,3 +197,59 @@ def test_nao_apaga_certificado_fora_do_data_dir(c, gerar_pfx, monkeypatch, tmp_p
     assert "Certificado salvo" in r.text and "foi apagado" not in r.text
     assert os.path.exists(fora)
     os.remove(novo)
+
+
+# ---------------------------------------------------------------- vencimento e CNPJ
+def test_situacao_validade_avisa_a_partir_de_90_dias():
+    from datetime import datetime, timedelta, timezone
+    agora = datetime(2026, 11, 2, 12, 0, tzinfo=timezone.utc)
+
+    def sit(**delta):
+        return sefin.situacao_validade(agora + timedelta(**delta), agora)
+
+    assert sit(days=91) == {"dias_restantes": 91, "vencido": False, "vence_em_breve": False}
+    assert sit(days=90) == {"dias_restantes": 90, "vencido": False, "vence_em_breve": True}
+    assert sit(hours=1) == {"dias_restantes": 0, "vencido": False, "vence_em_breve": True}
+    assert sit(days=-1) == {"dias_restantes": -1, "vencido": True, "vence_em_breve": False}
+
+
+def test_aviso_de_vencimento_aparece_no_painel_e_na_config():
+    info = sefin.cert_info()                 # certificado de teste: 30 dias
+    assert info["vence_em_breve"] and not info["vencido"] and 29 <= info["dias_restantes"] <= 30
+    with TestClient(app) as c:
+        assert f"vence em {info['dias_restantes']} dias" in c.get("/").text
+        assert f"vence em {info['dias_restantes']} dias" in c.get("/config").text
+
+
+def test_certificado_com_validade_longa_nao_avisa(c, gerar_pfx):
+    longo = gerar_pfx(os.path.join(TMP, "longo.pfx"), SENHA, dias=400)
+    r = _enviar(c, _bytes(longo))
+    assert "Certificado salvo" in r.text and "vence em" not in r.text
+    assert not sefin.cert_info()["vence_em_breve"]
+    assert "vence em" not in c.get("/").text
+    os.remove(longo)
+
+
+def test_cnpj_do_certificado(gerar_pfx):
+    from cryptography.hazmat.primitives.serialization import pkcs12
+    p = gerar_pfx(os.path.join(TMP, "san.pfx"), "1", cn="SEM CNPJ NO CN",
+                  san="otherName:2.16.76.1.3.3;UTF8:11222333000181")
+    _, cert, _ = pkcs12.load_key_and_certificates(_bytes(p), b"1")
+    assert sefin.cnpj_do_certificado(cert) == "11222333000181"
+    os.remove(p)
+    assert sefin.cert_info()["cnpj"] == "12345678000195"         # do CN "NOME:CNPJ"
+
+
+def test_avisa_quando_cnpj_do_certificado_difere_do_prestador(c, gerar_pfx):
+    c.post("/config", data={"cnpj": "12.345.678/0001-95"})
+    igual = gerar_pfx(os.path.join(TMP, "igual.pfx"), SENHA)
+    r = _enviar(c, _bytes(igual))
+    assert "diferente do CNPJ" not in r.text
+    assert "diferente do CNPJ" not in c.get("/config").text
+    outra = gerar_pfx(os.path.join(TMP, "outra.pfx"), SENHA, cn="OUTRA EMPRESA:11222333000181")
+    r = _enviar(c, _bytes(outra))
+    _sem_vazamento(r)
+    assert "Certificado salvo" in r.text and "diferente do CNPJ" in r.text
+    assert "O CNPJ do certificado (11222333000181) é diferente" in c.get("/config").text
+    os.remove(igual)
+    os.remove(outra)

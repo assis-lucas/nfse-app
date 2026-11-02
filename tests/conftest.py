@@ -11,11 +11,13 @@ os.environ.update(DATA_DIR=TMP, NFSE_MOCK="1", SECRET_KEY="x" * 32,
                   ALLOWED_HOSTS="localhost,127.0.0.1,[::1],testserver")
 
 
-def _gerar_pfx(destino: str, senha: str, cn: str = "EMPRESA TESTE:12345678000195", dias: int = 30) -> str:
+def _gerar_pfx(destino: str, senha: str, cn: str = "EMPRESA TESTE:12345678000195", dias: int = 30,
+               san: str | None = None) -> str:
     """Certificado autoassinado de teste (dados fictícios), via openssl."""
     base = destino + ".tmp"
+    extra = ["-addext", f"subjectAltName={san}"] if san else []
     subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-keyout", base + ".key",
-                    "-out", base + ".crt", "-days", str(dias), "-nodes", "-subj", f"/CN={cn}"],
+                    "-out", base + ".crt", "-days", str(dias), "-nodes", "-subj", f"/CN={cn}", *extra],
                    check=True, capture_output=True)
     subprocess.run(["openssl", "pkcs12", "-export", "-inkey", base + ".key", "-in", base + ".crt",
                     "-out", destino, "-passout", f"pass:{senha}"], check=True, capture_output=True)

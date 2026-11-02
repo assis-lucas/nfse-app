@@ -421,8 +421,15 @@ async def importar(request: Request, arquivos: list[UploadFile], atualizar_prest
 @app.get("/config", response_class=HTMLResponse)
 def config(request: Request, s: Session = Depends(get_session)):
     p = prestador(s)
-    return render(request, "config.html", p=p, cert=sefin.cert_info(),
-                  leiaute=dpsmod.leiaute_efetivo(p))
+    cert = sefin.cert_info()
+    return render(request, "config.html", p=p, cert=cert, leiaute=dpsmod.leiaute_efetivo(p),
+                  cnpj_diverge=_cnpj_diverge(cert, p))
+
+
+def _cnpj_diverge(cert: dict, p) -> bool:
+    """O certificado é de outro CNPJ que não o do prestador configurado?"""
+    a, b = dpsmod.digitos(cert.get("cnpj") or ""), dpsmod.digitos(p.cnpj or "")
+    return bool(cert.get("ok") and a and b and a != b)
 
 
 @app.post("/config")
@@ -440,7 +447,7 @@ async def config_salvar(request: Request, s: Session = Depends(get_session)):
 
 
 @app.post("/config/certificado")
-async def config_certificado(request: Request):
+async def config_certificado(request: Request, s: Session = Depends(get_session)):
     # Lê o formulário à mão (sem parâmetros Form()): um erro de validação do FastAPI devolveria
     # os campos enviados no corpo da resposta 422, e um deles é a senha.
     try:
@@ -460,9 +467,16 @@ async def config_certificado(request: Request):
         flash(request, str(e), "erro")
         return RedirectResponse("/config", 303)
     msg = f"Certificado salvo: {info['titular']}, válido até {info['validade']}."
+    alerta = False
     if info["vencido"]:
         msg += " ATENÇÃO: este certificado está VENCIDO e o SEFIN vai recusar as notas."
+        alerta = True
+    elif info["vence_em_breve"]:
+        msg += f" Atenção: ele vence em {info['dias_restantes']} dias."
+    if _cnpj_diverge(info, prestador(s)):
+        msg += f" ATENÇÃO: o CNPJ do certificado ({info['cnpj']}) é diferente do CNPJ da sua empresa."
+        alerta = True
     if info["removido"]:
         msg += f" O certificado anterior ({info['removido']}) foi apagado."
-    flash(request, msg, "erro" if info["vencido"] else "ok")
+    flash(request, msg, "erro" if alerta else "ok")
     return RedirectResponse("/config", 303)

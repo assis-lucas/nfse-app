@@ -22,7 +22,9 @@ XSD oficial 1.01. A assinatura XMLDSIG e o transporte mTLS vêm da `PyNFSeNacion
 
 A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → emitir.
 
-Renovou o certificado? Envie o novo `.pfx` pela mesma tela: ele substitui o anterior na hora, sem reiniciar.
+Quando faltarem 90 dias ou menos para o certificado vencer, o painel e a tela *Config* mostram um aviso.
+Renovou? Envie o novo `.pfx` pela mesma tela: ele substitui o anterior na hora, sem reiniciar.
+A tela também avisa se o CNPJ do certificado for diferente do CNPJ configurado da sua empresa.
 
 ## Segurança
 

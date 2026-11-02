@@ -4,7 +4,10 @@
 <article>
   <header><strong>Certificado A1</strong></header>
   {% if cert.ok %}
-    <p>✓ {{ cert.titular }}<br>Válido até <strong>{{ cert.validade }}</strong>{% if cert.vencido %} — <span class="badge b-erro">VENCIDO</span>{% endif %}</p>
+    <p>✓ {{ cert.titular }}<br>Válido até <strong>{{ cert.validade }}</strong>{% if cert.vencido %} — <span class="badge b-erro">VENCIDO</span>
+      {% elif cert.vence_em_breve %} — <span class="badge b-hom">vence em {{ cert.dias_restantes }} dias</span>{% endif %}</p>
+    {% if cert.vence_em_breve %}<p class="flash-aviso">Renove o certificado com a sua certificadora e envie o novo arquivo aqui antes do vencimento.</p>{% endif %}
+    {% if cnpj_diverge %}<p class="flash-erro">O CNPJ do certificado ({{ cert.cnpj }}) é diferente do CNPJ da sua empresa ({{ p.cnpj }}). O SEFIN recusa notas assinadas com o certificado de outra empresa.</p>{% endif %}
   {% else %}<p class="flash-erro">{{ cert.erro }}</p>{% endif %}
   {% if cert.origem %}<p class="muted">Origem: {{ cert.origem_txt }}</p>{% endif %}
   <form method="post" action="/config/certificado" enctype="multipart/form-data">

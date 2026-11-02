@@ -6,7 +6,8 @@
     {{ "PRODUÇÃO" if p.ambiente == "producao" else "HOMOLOGAÇÃO (teste)" }}</span>
 </div>
 {% if not cert.ok %}<p class="flash-erro">Certificado: {{ cert.erro }}</p>
-{% elif cert.vencido %}<p class="flash-erro">Certificado VENCIDO em {{ cert.validade }}.</p>{% endif %}
+{% elif cert.vencido %}<p class="flash-erro">Certificado VENCIDO em {{ cert.validade }}. Envie o novo em <a href="/config">Config</a>.</p>
+{% elif cert.vence_em_breve %}<p class="flash-aviso">Certificado vence em {{ cert.dias_restantes }} dias ({{ cert.validade }}). Renove e envie o novo em <a href="/config">Config</a>.</p>{% endif %}
 
 {% if tomadores %}
 <p style="margin-top:1rem">

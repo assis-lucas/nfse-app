@@ -7,10 +7,11 @@ import base64
 import gzip
 import os
 import random
+import re
 import tempfile
 import warnings
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .db import DATA_DIR
 
@@ -69,10 +70,44 @@ def _abrir_pfx(dados: bytes, senha: str):
     return cert
 
 
+AVISO_VENCIMENTO_DIAS = 90       # começa a avisar ~3 meses antes de vencer
+
+
+def situacao_validade(fim: datetime, agora: datetime | None = None) -> dict:
+    """Dias até o vencimento e se já venceu ou vence em breve (fim e agora com fuso)."""
+    agora = agora or datetime.now(timezone.utc)
+    dias = (fim.astimezone(timezone.utc).date() - agora.astimezone(timezone.utc).date()).days
+    vencido = fim <= agora
+    return {"dias_restantes": dias, "vencido": vencido,
+            "vence_em_breve": not vencido and dias <= AVISO_VENCIMENTO_DIAS}
+
+
+OID_CNPJ_ICP_BRASIL = "2.16.76.1.3.3"   # otherName do e-CNPJ no SubjectAltName
+
+
+def cnpj_do_certificado(cert) -> str:
+    """CNPJ de um e-CNPJ ICP-Brasil: do SubjectAltName ou, na falta, do CN ("NOME:CNPJ")."""
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    try:
+        san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+        for outro in san.get_values_for_type(x509.OtherName):
+            m = re.search(rb"\d{14}", outro.value)
+            if outro.type_id.dotted_string == OID_CNPJ_ICP_BRASIL and m:
+                return m.group().decode()
+    except Exception:
+        pass
+    for attr in cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME):
+        m = re.search(r":(\d{14})\b", str(attr.value))
+        if m:
+            return m.group(1)
+    return ""
+
+
 def _resumo(cert) -> dict:
     fim = cert.not_valid_after_utc
-    return {"ok": True, "titular": cert.subject.rfc4514_string(),
-            "validade": fim.date().isoformat(), "vencido": fim < datetime.now(fim.tzinfo)}
+    return {"ok": True, "titular": cert.subject.rfc4514_string(), "validade": fim.date().isoformat(),
+            "cnpj": cnpj_do_certificado(cert), **situacao_validade(fim)}
 
 
 def cert_info() -> dict:
@@ -170,7 +205,6 @@ def dps_existente(ambiente: str, cod_mun: str, id_dps: str) -> Resultado | None:
         return None
     chave = c.consultar_dps(id_dps)
     xml = c.consultar_nfse(chave) if chave else None
-    import re
     num = re.search(r"<nNFSe>(\d+)</nNFSe>", xml or "")
     return Resultado(ok=True, chave=chave or "", numero=num.group(1) if num else "",
                      nfse_xml=xml or "", ja_existia=True)
