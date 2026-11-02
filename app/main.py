@@ -14,6 +14,7 @@ from fastapi import Depends, FastAPI, Form, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.datastructures import UploadFile as StarletteUpload
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import dps as dpsmod
@@ -435,4 +436,33 @@ async def config_salvar(request: Request, s: Session = Depends(get_session)):
     s.add(p)
     s.commit()
     flash(request, "Configuração salva.")
+    return RedirectResponse("/config", 303)
+
+
+@app.post("/config/certificado")
+async def config_certificado(request: Request):
+    # Lê o formulário à mão (sem parâmetros Form()): um erro de validação do FastAPI devolveria
+    # os campos enviados no corpo da resposta 422, e um deles é a senha.
+    try:
+        tamanho = int(request.headers.get("content-length") or 0)
+    except ValueError:
+        tamanho = 0
+    if tamanho > sefin.TAMANHO_MAX_CERT + 64 * 1024:    # nem lê o corpo: arquivo muito grande
+        flash(request, "Arquivo grande demais (máximo 1 MB). Um certificado A1 tem poucos KB: "
+                       "confira se escolheu o arquivo certo.", "erro")
+        return RedirectResponse("/config", 303)
+    form = await request.form()
+    arquivo, senha = form.get("arquivo"), form.get("senha")
+    try:
+        dados = await arquivo.read(sefin.TAMANHO_MAX_CERT + 1) if isinstance(arquivo, StarletteUpload) else b""
+        info = sefin.salvar_certificado(dados, senha if isinstance(senha, str) else "")
+    except sefin.CertificadoInvalido as e:
+        flash(request, str(e), "erro")
+        return RedirectResponse("/config", 303)
+    msg = f"Certificado salvo: {info['titular']}, válido até {info['validade']}."
+    if info["vencido"]:
+        msg += " ATENÇÃO: este certificado está VENCIDO e o SEFIN vai recusar as notas."
+    if info["removido"]:
+        msg += f" O certificado anterior ({info['removido']}) foi apagado."
+    flash(request, msg, "erro" if info["vencido"] else "ok")
     return RedirectResponse("/config", 303)

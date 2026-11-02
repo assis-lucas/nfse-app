@@ -7,6 +7,7 @@ import base64
 import gzip
 import os
 import random
+import tempfile
 import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -44,6 +45,36 @@ class Resultado:
     ja_existia: bool = False
 
 
+class CertificadoInvalido(ValueError):
+    """Mensagem pronta para o usuário. Nunca contém a senha."""
+
+
+def _abrir_pfx(dados: bytes, senha: str):
+    """Abre o PKCS#12 e devolve o certificado. Exige a chave privada junto (o A1 precisa dela)."""
+    from cryptography.hazmat.primitives.serialization import pkcs12
+    for tentativa in ([senha.encode()] if senha else [None, b""]):
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                chave, cert, _ = pkcs12.load_key_and_certificates(dados, tentativa)
+            break
+        except Exception:
+            continue
+    else:
+        raise CertificadoInvalido("Não consegui abrir o certificado: senha errada ou o arquivo não é "
+                                  "um certificado .pfx/.p12 válido.")
+    if cert is None or chave is None:
+        raise CertificadoInvalido("O arquivo não contém o certificado com a chave privada "
+                                  "(o A1 precisa dos dois).")
+    return cert
+
+
+def _resumo(cert) -> dict:
+    fim = cert.not_valid_after_utc
+    return {"ok": True, "titular": cert.subject.rfc4514_string(),
+            "validade": fim.date().isoformat(), "vencido": fim < datetime.now(fim.tzinfo)}
+
+
 def cert_info() -> dict:
     caminho, senha, origem = certificado()
     info = {"origem": origem, "origem_txt": ORIGENS.get(origem, "")}
@@ -53,16 +84,66 @@ def cert_info() -> dict:
     if not os.path.exists(caminho):
         return {**info, "ok": False, "erro": f"Arquivo do certificado não encontrado ({caminho})."}
     try:
-        from cryptography.hazmat.primitives.serialization import pkcs12
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            with open(caminho, "rb") as f:
-                _, cert, _ = pkcs12.load_key_and_certificates(f.read(), senha.encode())
-        return {**info, "ok": True, "titular": cert.subject.rfc4514_string(),
-                "validade": cert.not_valid_after_utc.date().isoformat(),
-                "vencido": cert.not_valid_after_utc < datetime.now(cert.not_valid_after_utc.tzinfo)}
-    except Exception as e:  # senha errada, arquivo inválido…
-        return {**info, "ok": False, "erro": f"Não consegui abrir o certificado: {e}"}
+        with open(caminho, "rb") as f:
+            return {**info, **_resumo(_abrir_pfx(f.read(), senha))}
+    except Exception as e:
+        msg = str(e) if isinstance(e, CertificadoInvalido) else f"Não consegui abrir o certificado: {e}"
+        dica = " Envie o certificado de novo em Config." if origem == "interface" else ""
+        return {**info, "ok": False, "erro": msg + dica}
+
+
+TAMANHO_MAX_CERT = 1024 * 1024    # um A1 tem poucos KB
+
+
+def _escrever_tmp(dados: bytes) -> str:
+    """Arquivo temporário 0600 em DATA_DIR (mesmo sistema de arquivos → os.replace atômico)."""
+    fd, tmp = tempfile.mkstemp(dir=DATA_DIR, prefix=".certificado-", suffix=".tmp")
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(dados)
+            f.flush()
+            os.fsync(f.fileno())
+    except BaseException:
+        os.unlink(tmp)
+        raise
+    return tmp
+
+
+def _remover_antigo_do_ambiente() -> str | None:
+    """Apaga o .pfx antigo indicado por NFSE_CERT_PATH, mas só se ele estiver dentro de DATA_DIR
+    (nunca mexe em nada fora dele) e não for o próprio arquivo que acabamos de gravar."""
+    antigo = os.environ.get("NFSE_CERT_PATH", "")
+    if not antigo or os.path.splitext(antigo)[1].lower() not in (".pfx", ".p12"):
+        return None
+    real, base = os.path.realpath(antigo), os.path.realpath(DATA_DIR)
+    if real == os.path.realpath(CERT_ENVIADO) or os.path.commonpath([real, base]) != base \
+            or not os.path.isfile(real):
+        return None
+    os.remove(real)
+    return os.path.basename(real)
+
+
+def salvar_certificado(dados: bytes, senha: str) -> dict:
+    """Valida (tamanho, senha, chave privada) e só então grava o certificado e a senha em
+    DATA_DIR, com nomes fixos, permissão 0600 e troca atômica. O anterior é substituído.
+    Levanta CertificadoInvalido sem gravar nada se algo estiver errado."""
+    if not dados:
+        raise CertificadoInvalido("Selecione o arquivo do certificado (.pfx ou .p12).")
+    if len(dados) > TAMANHO_MAX_CERT:
+        raise CertificadoInvalido("Arquivo grande demais (máximo 1 MB). Um certificado A1 tem "
+                                  "poucos KB: confira se escolheu o arquivo certo.")
+    info = _resumo(_abrir_pfx(dados, senha))
+    tmp_cert = _escrever_tmp(dados)
+    try:
+        tmp_senha = _escrever_tmp(senha.encode("utf-8"))
+    except BaseException:
+        os.unlink(tmp_cert)
+        raise
+    os.replace(tmp_cert, CERT_ENVIADO)
+    os.replace(tmp_senha, SENHA_ENVIADA)
+    info["removido"] = _remover_antigo_do_ambiente()
+    return info
 
 
 def assinar(xml: str) -> str:

@@ -6,7 +6,18 @@
   {% if cert.ok %}
     <p>✓ {{ cert.titular }}<br>Válido até <strong>{{ cert.validade }}</strong>{% if cert.vencido %} — <span class="badge b-erro">VENCIDO</span>{% endif %}</p>
   {% else %}<p class="flash-erro">{{ cert.erro }}</p>{% endif %}
-  <small class="muted">Definido pelas variáveis NFSE_CERT_PATH e NFSE_CERT_SENHA (fora do banco, de propósito).</small>
+  {% if cert.origem %}<p class="muted">Origem: {{ cert.origem_txt }}</p>{% endif %}
+  <form method="post" action="/config/certificado" enctype="multipart/form-data">
+    <div class="grid">
+      <label>{{ "Trocar por outro certificado" if cert.ok else "Arquivo do certificado" }} (.pfx ou .p12)
+        <input type="file" name="arquivo" accept=".pfx,.p12,application/x-pkcs12" required></label>
+      <label>Senha do certificado<input type="password" name="senha" autocomplete="off"></label>
+    </div>
+    <button type="submit" class="secondary">Enviar certificado</button>
+    <small class="muted">O arquivo só é gravado se abrir com a senha informada, e substitui o anterior.
+      Fica na pasta de dados do app (<code>certificado.pfx</code> e <code>certificado.senha</code>,
+      legíveis só pelo app) e tem prioridade sobre as variáveis NFSE_CERT_PATH e NFSE_CERT_SENHA.</small>
+  </form>
 </article>
 
 <form method="post" action="/config">

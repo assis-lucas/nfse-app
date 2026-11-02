@@ -10,22 +10,39 @@ XSD oficial 1.01. A assinatura XMLDSIG e o transporte mTLS vêm da `PyNFSeNacion
 
 ## Primeiro uso (ordem importa)
 
-1. **Importe o XML de uma nota que você já emitiu** (Emissor Nacional → Notas Emitidas → baixar XML)
+1. Em *Config → Certificado A1*, **envie o seu certificado** (arquivo `.pfx`/`.p12` do e-CNPJ) e a
+   senha dele. O app só grava se o arquivo abrir com essa senha e mostra titular, validade e origem.
+2. **Importe o XML de uma nota que você já emitiu** (Emissor Nacional → Notas Emitidas → baixar XML)
    em *Tomadores → Importar de XML*. Isso cria o tomador com exatamente os códigos, a tributação e o
    grupo de comércio exterior da nota que já foi aceita, e preenche sua empresa.
-2. Em *Config*, confira CNPJ, município e regime. O ambiente começa em **Homologação**.
-3. Emita uma nota de teste. Ela vai para a *produção restrita* (sem validade jurídica).
+3. Em *Config*, confira CNPJ, município e regime. O ambiente começa em **Homologação**.
+4. Emita uma nota de teste. Ela vai para a *produção restrita* (sem validade jurídica).
    Se vier rejeição, a mensagem do SEFIN (código E0xxx) aparece na tela; ajuste o molde do tomador.
-4. Quando o teste passar, mude para **Produção** em *Config* (exige marcar a confirmação).
+5. Quando o teste passar, mude para **Produção** em *Config* (exige marcar a confirmação).
 
 A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → emitir.
+
+Renovou o certificado? Envie o novo `.pfx` pela mesma tela: ele substitui o anterior na hora, sem reiniciar.
 
 ## Segurança
 
 - A emissão tem uma tela de revisão, com token de uso único: dar F5 ou clicar duas vezes não gera duas notas.
 - Antes de enviar, o app consulta se aquela DPS já virou nota (`HEAD /dps/{id}`). Se um envio
   anterior caiu no meio, ele recupera a nota em vez de duplicar.
-- O certificado e a senha ficam em variáveis de ambiente, não no banco.
+- **Certificado e senha ficam fora do banco**, em arquivos na pasta de dados (`data/` no Docker):
+  - Enviado pela interface: `data/certificado.pfx` e a senha em `data/certificado.senha`, ambos com
+    permissão `0600`, gravados de forma atômica com nome fixo (o nome do arquivo enviado é ignorado).
+    Um envio novo substitui o anterior; se `NFSE_CERT_PATH` apontava para outro `.pfx` dentro de
+    `data/`, esse arquivo antigo é apagado. A senha nunca vai para log, tela, resposta ou mensagem de erro.
+  - *Trade-off*: a senha precisa sobreviver a reinícios, então fica em texto puro ao lado do
+    certificado, protegida só pela permissão do arquivo. É o mesmo nível de proteção de antes (o
+    `.env` com a senha também ficava em disco), mas agora **quem tiver uma cópia de `data/` tem o
+    certificado e a senha**: trate backups dessa pasta como você trataria o próprio `.pfx`. Ficar
+    fora do SQLite evita que a senha vá junto em cópias do banco.
+  - Compatibilidade: `NFSE_CERT_PATH`/`NFSE_CERT_SENHA` continuam funcionando. Se existir um
+    certificado enviado pela interface, **ele tem prioridade** sobre as variáveis (a tela *Config*
+    mostra qual está em uso). Para voltar às variáveis, apague `data/certificado.senha`
+    (e confira se `NFSE_CERT_PATH` aponta para um `.pfx` que ainda existe).
 - **O app não tem login.** Quem alcançar a porta consegue emitir notas com o seu certificado.
   Por isso o `docker-compose.yml` publica só em `127.0.0.1`. **Nunca exponha a porta na internet.**
   Para acessar de outro aparelho, use uma rede privada (o jeito mais simples é o Tailscale, abaixo)
@@ -50,9 +67,8 @@ A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → em
 ## Rodar local
 
 ```bash
-cp .env.example .env    # preencha
-mkdir -p data && cp ~/certificado.pfx data/
-docker compose up -d --build     # http://127.0.0.1:8000
+cp .env.example .env    # opcional: tudo tem padrão
+docker compose up -d --build     # http://127.0.0.1:8000 → Config → envie o certificado
 ```
 
 Sem Docker: `pip install -r requirements.txt && uvicorn app.main:app` (use as mesmas variáveis).
@@ -65,8 +81,8 @@ Testes: `pip install pytest httpx && pytest -q` (rodam em modo mock, sem tocar n
 sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2
 git clone <seu-repo> nfse && cd nfse      # ou scp do zip
 cp .env.example .env && nano .env
-mkdir -p data && chmod 700 data           # copie o .pfx para data/ via scp
-sudo docker compose up -d --build
+mkdir -p data && chmod 700 data
+sudo docker compose up -d --build         # depois, envie o .pfx em Config pelo navegador
 
 # acesso privado pelo celular/notebook, sem abrir porta:
 curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
@@ -76,7 +92,8 @@ sudo tailscale serve --bg 8000            # https://<nome-da-vm>.<tailnet>.ts.ne
 sudo docker compose up -d                 # recarrega o .env
 ```
 
-Uma VM pequena (1 GB de RAM) dá conta com folga. Faça backup de `data/nfse.db` de vez em quando.
+Uma VM pequena (1 GB de RAM) dá conta com folga. Faça backup de `data/` de vez em quando
+(banco, certificado e senha: guarde o backup em lugar seguro).
 Se o SEFIN recusar conexão vinda de IP fora do Brasil, use uma VM hospedada no Brasil
 com os mesmos comandos.
 
@@ -85,7 +102,7 @@ com os mesmos comandos.
 ```
 app/dps.py        montagem da DPS (leiautes 20260209 e NT 009) + validação XSD
 app/importer.py   lê XML de NFS-e/DPS → tomador, molde e nota
-app/sefin.py      assinatura, envio, idempotência, modo mock, leitura do certificado
+app/sefin.py      assinatura, envio, idempotência, modo mock, certificado (leitura e upload)
 app/main.py       rotas/telas
 app/seguranca.py  allowlist de Host (DNS rebinding) e checagem de Origin (CSRF)
 app/db.py         modelos (valores em centavos)
