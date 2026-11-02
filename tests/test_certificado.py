@@ -22,7 +22,7 @@ def test_certificado_das_variaveis_de_ambiente():
 
 
 def test_variaveis_lidas_a_cada_uso_sem_reiniciar(monkeypatch, gerar_pfx):
-    outro = gerar_pfx(os.path.join(TMP, "outro-env.pfx"), "abcd", cn="OUTRA EMPRESA:11222333000181")
+    outro = gerar_pfx(os.path.join(TMP, "outro-env.pfx"), "abcd", cn="OUTRA EMPRESA:11222333000100")
     monkeypatch.setenv("NFSE_CERT_PATH", outro)
     monkeypatch.setenv("NFSE_CERT_SENHA", "abcd")
     assert "OUTRA EMPRESA" in sefin.cert_info()["titular"]
@@ -139,7 +139,7 @@ def test_senha_errada_nao_grava_nada(c, gerar_pfx):
     # com um certificado já enviado: erro não mexe no que está gravado
     _enviar(c, _bytes(bom))
     antes = _bytes(sefin.CERT_ENVIADO), _bytes(sefin.SENHA_ENVIADA)
-    outro = gerar_pfx(os.path.join(TMP, "outro.pfx"), "xyz", cn="OUTRA:11222333000181")
+    outro = gerar_pfx(os.path.join(TMP, "outro.pfx"), "xyz", cn="OUTRA:11222333000100")
     r = _enviar(c, _bytes(outro), senha=SENHA)
     _sem_vazamento(r)
     assert (_bytes(sefin.CERT_ENVIADO), _bytes(sefin.SENHA_ENVIADA)) == antes
@@ -233,9 +233,9 @@ def test_certificado_com_validade_longa_nao_avisa(c, gerar_pfx):
 def test_cnpj_do_certificado(gerar_pfx):
     from cryptography.hazmat.primitives.serialization import pkcs12
     p = gerar_pfx(os.path.join(TMP, "san.pfx"), "1", cn="SEM CNPJ NO CN",
-                  san="otherName:2.16.76.1.3.3;UTF8:11222333000181")
+                  san="otherName:2.16.76.1.3.3;UTF8:11222333000100")
     _, cert, _ = pkcs12.load_key_and_certificates(_bytes(p), b"1")
-    assert sefin.cnpj_do_certificado(cert) == "11222333000181"
+    assert sefin.cnpj_do_certificado(cert) == "11222333000100"
     os.remove(p)
     assert sefin.cert_info()["cnpj"] == "12345678000195"         # do CN "NOME:CNPJ"
 
@@ -246,10 +246,10 @@ def test_avisa_quando_cnpj_do_certificado_difere_do_prestador(c, gerar_pfx):
     r = _enviar(c, _bytes(igual))
     assert "diferente do CNPJ" not in r.text
     assert "diferente do CNPJ" not in c.get("/config").text
-    outra = gerar_pfx(os.path.join(TMP, "outra.pfx"), SENHA, cn="OUTRA EMPRESA:11222333000181")
+    outra = gerar_pfx(os.path.join(TMP, "outra.pfx"), SENHA, cn="OUTRA EMPRESA:11222333000100")
     r = _enviar(c, _bytes(outra))
     _sem_vazamento(r)
     assert "Certificado salvo" in r.text and "diferente do CNPJ" in r.text
-    assert "O CNPJ do certificado (11222333000181) é diferente" in c.get("/config").text
+    assert "O CNPJ do certificado (11222333000100) é diferente" in c.get("/config").text
     os.remove(igual)
     os.remove(outra)
