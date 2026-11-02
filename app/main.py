@@ -19,6 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from . import dps as dpsmod
 from . import importer, sefin
 from .db import (DATA_DIR, Nota, Session, Tomador, get_session, init_db, prestador, select)
+from .seguranca import ProtecaoOrigem
 
 # Assina o cookie de sessão (mensagens flash e token anti-duplicidade da emissão).
 # Opcional: sem ela, uma chave aleatória é gerada a cada início do app.
@@ -62,6 +63,8 @@ app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, https_only=False,
                    max_age=60 * 60 * 24 * 30, same_site="strict")
+# Adicionado por último = roda primeiro: recusa Host fora de ALLOWED_HOSTS e POSTs de outros sites.
+app.add_middleware(ProtecaoOrigem)
 
 
 def render(request: Request, name: str, **ctx):

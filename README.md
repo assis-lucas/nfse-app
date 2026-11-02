@@ -30,6 +30,22 @@ A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → em
   Por isso o `docker-compose.yml` publica só em `127.0.0.1`. **Nunca exponha a porta na internet.**
   Para acessar de outro aparelho, use uma rede privada (o jeito mais simples é o Tailscale, abaixo)
   ou coloque um proxy reverso com autenticação na frente.
+- **Outros sites não conseguem agir pelo seu navegador** (`app/seguranca.py`):
+  - *CSRF*: todo POST com `Origin` (ou, na falta dele, `Referer`) de outro host, com `Origin: null`
+    ou com `Sec-Fetch-Site: cross-site` é recusado com 403. POST sem nenhum desses cabeçalhos passa,
+    porque só clientes que não são navegador (curl, scripts) mandam assim, e eles não servem para CSRF.
+  - *DNS rebinding*: só são aceitos os hosts de `ALLOWED_HOSTS` (padrão: `localhost,127.0.0.1,[::1]`).
+    Qualquer outro `Host` recebe 400, inclusive em GET. Só o `/healthz` fica de fora.
+  - Atrás de proxy/Tailscale: o `Origin` precisa bater com o `Host` ou com o `X-Forwarded-Host`
+    (este só vale se também estiver em `ALLOWED_HOSTS`). Assim funciona tanto com proxy que preserva o
+    `Host` quanto com proxy que o reescreve para `127.0.0.1:8000`. Em qualquer caso, **coloque o
+    hostname público em `ALLOWED_HOSTS`**. Prefira um proxy que preserve o `Host`: se ele reescreve
+    o `Host` para `127.0.0.1`, a allowlist deixa de proteger o que chega pelo proxy.
+
+> **Atualizando de uma versão anterior?** Se você acessa por Tailscale ou proxy reverso, adicione o
+> hostname ao `.env` antes de subir a versão nova, senão toda página responde
+> *400 Host não permitido* (a mensagem diz qual nome incluir):
+> `ALLOWED_HOSTS=localhost,127.0.0.1,[::1],<nome-da-vm>.<tailnet>.ts.net`
 
 ## Rodar local
 
@@ -55,6 +71,9 @@ sudo docker compose up -d --build
 # acesso privado pelo celular/notebook, sem abrir porta:
 curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
 sudo tailscale serve --bg 8000            # https://<nome-da-vm>.<tailnet>.ts.net
+# libere esse nome no app: no .env,
+#   ALLOWED_HOSTS=localhost,127.0.0.1,[::1],<nome-da-vm>.<tailnet>.ts.net
+sudo docker compose up -d                 # recarrega o .env
 ```
 
 Uma VM pequena (1 GB de RAM) dá conta com folga. Faça backup de `data/nfse.db` de vez em quando.
@@ -68,6 +87,7 @@ app/dps.py        montagem da DPS (leiautes 20260209 e NT 009) + validação XSD
 app/importer.py   lê XML de NFS-e/DPS → tomador, molde e nota
 app/sefin.py      assinatura, envio, idempotência, modo mock, leitura do certificado
 app/main.py       rotas/telas
+app/seguranca.py  allowlist de Host (DNS rebinding) e checagem de Origin (CSRF)
 app/db.py         modelos (valores em centavos)
 ```
 
