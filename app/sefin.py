@@ -11,9 +11,26 @@ import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 
-CERT_PATH = os.environ.get("NFSE_CERT_PATH", "")
-CERT_SENHA = os.environ.get("NFSE_CERT_SENHA", "")
+from .db import DATA_DIR
+
 MOCK = os.environ.get("NFSE_MOCK", "") == "1"
+
+# Certificado enviado pela tela Config: nome fixo dentro de DATA_DIR, senha num arquivo ao lado
+# (ambos 0600). A presença do arquivo de senha é o que indica "veio da interface".
+CERT_ENVIADO = os.path.join(DATA_DIR, "certificado.pfx")
+SENHA_ENVIADA = os.path.join(DATA_DIR, "certificado.senha")
+ORIGENS = {"interface": "enviado pela interface", "ambiente": "variáveis de ambiente"}
+
+
+def certificado() -> tuple[str, str, str]:
+    """(caminho, senha, origem) do certificado em uso, resolvido a cada chamada para que um
+    certificado novo valha sem reiniciar o app. O enviado pela interface tem prioridade sobre
+    NFSE_CERT_PATH/NFSE_CERT_SENHA. origem: "interface", "ambiente" ou "" (nenhum)."""
+    if os.path.exists(SENHA_ENVIADA):
+        with open(SENHA_ENVIADA, encoding="utf-8") as f:
+            return CERT_ENVIADO, f.read(), "interface"
+    caminho = os.environ.get("NFSE_CERT_PATH", "")
+    return caminho, os.environ.get("NFSE_CERT_SENHA", ""), "ambiente" if caminho else ""
 
 
 @dataclass
@@ -28,31 +45,38 @@ class Resultado:
 
 
 def cert_info() -> dict:
-    if not CERT_PATH or not os.path.exists(CERT_PATH):
-        return {"ok": False, "erro": "NFSE_CERT_PATH não configurado ou arquivo inexistente."}
+    caminho, senha, origem = certificado()
+    info = {"origem": origem, "origem_txt": ORIGENS.get(origem, "")}
+    if not caminho:
+        return {**info, "ok": False, "erro": "Nenhum certificado configurado. Envie o seu .pfx em "
+                "Config (ou defina NFSE_CERT_PATH e NFSE_CERT_SENHA)."}
+    if not os.path.exists(caminho):
+        return {**info, "ok": False, "erro": f"Arquivo do certificado não encontrado ({caminho})."}
     try:
         from cryptography.hazmat.primitives.serialization import pkcs12
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            _, cert, _ = pkcs12.load_key_and_certificates(open(CERT_PATH, "rb").read(),
-                                                          CERT_SENHA.encode())
-        return {"ok": True, "titular": cert.subject.rfc4514_string(),
+            with open(caminho, "rb") as f:
+                _, cert, _ = pkcs12.load_key_and_certificates(f.read(), senha.encode())
+        return {**info, "ok": True, "titular": cert.subject.rfc4514_string(),
                 "validade": cert.not_valid_after_utc.date().isoformat(),
                 "vencido": cert.not_valid_after_utc < datetime.now(cert.not_valid_after_utc.tzinfo)}
     except Exception as e:  # senha errada, arquivo inválido…
-        return {"ok": False, "erro": f"Não consegui abrir o certificado: {e}"}
+        return {**info, "ok": False, "erro": f"Não consegui abrir o certificado: {e}"}
 
 
 def assinar(xml: str) -> str:
-    if MOCK and not CERT_PATH:
+    caminho, senha, _ = certificado()
+    if MOCK and not caminho:
         return xml
     from pynfsenacional.assinatura import assinar_dps
-    return assinar_dps(xml, cert_pfx_path=CERT_PATH, senha=CERT_SENHA)
+    return assinar_dps(xml, cert_pfx_path=caminho, senha=senha)
 
 
 def _cliente(ambiente: str, cod_mun: str):
     from pynfsenacional.sefin import SefinClient
-    return SefinClient(ambiente=ambiente, cert_pfx_path=CERT_PATH, senha=CERT_SENHA,
+    caminho, senha, _ = certificado()
+    return SefinClient(ambiente=ambiente, cert_pfx_path=caminho, senha=senha,
                        codigo_municipio=cod_mun)
 
 
