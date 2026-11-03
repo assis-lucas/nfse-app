@@ -103,6 +103,21 @@ def test_fluxo_completo():
         assert c.get("/").status_code == 200
 
 
+def test_horario_da_nota_aparece_no_fuso_de_sao_paulo():
+    # O banco devolve created_at em UTC; a tela e o CSV mostram o horário de Brasília.
+    from datetime import datetime, timezone
+    from app.db import Nota, Session, engine
+    with TestClient(app) as c:
+        with Session(engine) as s:
+            n = Nota(competencia=date(2026, 1, 1), valor_cents=100, tomador_nome="Fuso Teste",
+                     created_at=datetime(2026, 1, 15, 2, 30, tzinfo=timezone.utc))
+            s.add(n)
+            s.commit()
+            nid = n.id
+        assert "14/01/2026 23:30" in c.get(f"/notas/{nid}").text
+        assert "2026-01-14 23:30" in c.get("/notas.csv").text
+
+
 def test_molde_descricao_troca_mes_e_ano_da_competencia():
     out = date(2026, 10, 30)
     molde = molde_descricao("Software development services - outubro/2026", out)

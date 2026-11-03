@@ -21,7 +21,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import dps as dpsmod
 from . import importer, sefin
-from .db import (DATA_DIR, Nota, Session, Tomador, get_session, init_db, prestador, select)
+from .db import (DATA_DIR, Nota, Session, Tomador, get_session, hora_local, init_db, prestador,
+                 select)
 from .seguranca import ProtecaoOrigem
 
 # Assina o cookie de sessão (mensagens flash e token anti-duplicidade da emissão).
@@ -46,6 +47,7 @@ def num(cents) -> str:
 MOEDAS = {"220": "USD", "978": "EUR", "540": "GBP", "790": "BRL"}
 templates.env.filters["brl"] = brl
 templates.env.filters["num"] = num
+templates.env.filters["hora_local"] = hora_local
 templates.env.globals["MOEDAS"] = MOEDAS
 templates.env.globals["MOCK"] = sefin.MOCK
 
@@ -285,7 +287,7 @@ def notas_csv(s: Session = Depends(get_session)):
     for n in s.exec(select(Nota).order_by(Nota.competencia)).all():
         w.writerow([n.competencia.isoformat(), n.tomador_nome, n.numero_nfse, n.chave,
                     num(n.valor_cents), MOEDAS.get(n.tp_moeda, n.tp_moeda), num(n.valor_moeda_cents),
-                    n.ambiente, n.status, n.origem, n.created_at.strftime("%Y-%m-%d %H:%M")])
+                    n.ambiente, n.status, n.origem, hora_local(n.created_at).strftime("%Y-%m-%d %H:%M")])
     return Response(buf.getvalue().encode("utf-8-sig"), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=notas.csv"})
 

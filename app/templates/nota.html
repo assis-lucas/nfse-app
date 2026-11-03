@@ -18,7 +18,7 @@
     <dt>Descrição</dt><dd>{{ n.descricao }}</dd>
     {% if n.chave %}<dt>Chave de acesso</dt><dd class="font-mono text-[13px] break-all">{{ n.chave }}</dd>{% endif %}
     <dt>DPS</dt><dd>série {{ n.serie }} nº {{ n.ndps or "—" }}</dd>
-    <dt>Origem</dt><dd>{{ n.origem }}, em {{ n.created_at.strftime("%d/%m/%Y %H:%M") }}</dd>
+    <dt>Origem</dt><dd>{{ n.origem }}, em {{ (n.created_at | hora_local).strftime("%d/%m/%Y %H:%M") }}</dd>
   </dl>
 
   <aside class="flex flex-col gap-2">

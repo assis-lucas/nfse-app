@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional
 
@@ -16,6 +16,13 @@ TZ = ZoneInfo("America/Sao_Paulo")
 
 def agora() -> datetime:
     return datetime.now(TZ)
+
+
+def hora_local(dt: datetime) -> datetime:
+    """O banco guarda e devolve em UTC; para mostrar, converte para o horário de Brasília."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(TZ)
 
 
 engine = create_engine(f"sqlite:///{os.path.join(DATA_DIR, 'nfse.db')}",
