@@ -115,7 +115,8 @@ def test_cotacao(monkeypatch):
         r = c.get("/cotacao", params={"moeda": "220", "data": "2026-11-01"})
         assert r.json() == {"taxa": "5.4206", "data": "2026-10-30"}
         assert pedidos == [("USD", date(2026, 11, 1))]
-        assert c.get("/cotacao", params={"moeda": "790", "data": "2026-11-01"}).status_code == 400
+        assert c.get("/cotacao", params={"moeda": "790", "data": "2026-11-01"}).json() == {"taxa": "1.0000", "data": None}
+        assert c.get("/cotacao", params={"moeda": "999", "data": "2026-11-01"}).status_code == 400
         assert c.get("/cotacao", params={"moeda": "220", "data": ""}).status_code == 400
 
         def falha(sigla, ate):

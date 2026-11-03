@@ -149,8 +149,10 @@ def _ptax(sigla: str, ate: date) -> tuple[Decimal, date]:
 def cotacao(moeda: str, data: str):
     """Usada pela tela de emissão para converter reais ↔ moeda estrangeira enquanto se digita."""
     sigla = MOEDAS.get(moeda)
-    if not sigla or sigla == "BRL":
+    if not sigla:
         return JSONResponse({"erro": "Moeda sem cotação."}, 400)
+    if sigla == "BRL":
+        return {"taxa": "1.0000", "data": None}
     try:
         dia = min(date.fromisoformat(data), date.today())
     except ValueError:

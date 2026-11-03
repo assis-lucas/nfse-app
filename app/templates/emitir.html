@@ -22,13 +22,13 @@
           <input type="date" name="competencia" value="{{ hoje }}" max="{{ hoje }}" required>
         </label>
         <label>Valor (R$){% if t.com_ext %}<span class="spinner hidden" aria-hidden="true"></span>{% endif %}
-          <input name="valor" inputmode="decimal" placeholder="10.000,00" required autofocus value="" class="tabular-nums">
+          <input name="valor" inputmode="numeric" placeholder="10.000,00" required autofocus value="" class="tabular-nums">
           {% if ultima %}<small>Última: {{ ultima.valor_cents|brl }} em {{ ultima.competencia.strftime("%m/%Y") }}</small>{% endif %}
         </label>
       </div>
       {% if t.com_ext %}
       <label>Valor em {{ MOEDAS.get(t.tp_moeda, "moeda " ~ t.tp_moeda) }} (comércio exterior)<span class="spinner hidden" aria-hidden="true"></span>
-        <input name="valor_moeda" inputmode="decimal" placeholder="2.000,00" required class="tabular-nums">
+        <input name="valor_moeda" inputmode="numeric" placeholder="2.000,00" required class="tabular-nums">
         {% if ultima and ultima.valor_moeda_cents %}<small>Última: {{ ultima.valor_moeda_cents|num }}</small>{% endif %}
         <small id="cotacao-info">Preencha um dos dois valores: o outro é convertido pela PTAX do Banco Central.</small>
       </label>
@@ -52,6 +52,13 @@
     <a href="/tomadores/{{ t.id }}" class="mt-4 inline-block">Editar molde</a>
   </aside>
 </div>
+<script>
+// Máscara de dinheiro: dígitos entram pelos centavos ("1980000" → "19.800,00"), formato que o servidor já lê.
+for (const el of document.querySelectorAll('input[name="valor"], input[name="valor_moeda"]')) el.addEventListener("input", () => {
+  const d = el.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 13);
+  el.value = d ? (Number(d) / 100).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "";
+});
+</script>
 {% if t.com_ext %}
 <div id="toast" role="alert" class="toast hidden"></div>
 <script>
@@ -90,7 +97,8 @@
       const c = await cotacao(comp.value), taxa = Number(c.taxa);
       if (de !== origem || ler(de.value) !== n) return;   // continuou digitando: a próxima conversão vale
       alvo.value = fmt(de === brl ? n / taxa : n * taxa);
-      info.textContent = `PTAX de compra de ${c.data.split("-").reverse().join("/")}: ${c.taxa.replace(".", ",")}`;
+      info.textContent = c.data ? `PTAX de compra de ${c.data.split("-").reverse().join("/")}: ${c.taxa.replace(".", ",")}`
+                                : "Mesma moeda: o valor é copiado.";
     } catch (e) {
       avisa(e.message);
     } finally {
