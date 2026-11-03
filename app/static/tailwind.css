@@ -110,6 +110,11 @@
   .grade { @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-3; }
   .campos { @apply mt-5 space-y-4; }
 
+  /* Conversão de moeda na emissão: spinner ao lado do rótulo e aviso flutuante em caso de erro */
+  .spinner { @apply ml-2 inline-block size-3.5 animate-spin rounded-full border-2 border-linha border-t-carimbo align-[-2px]; }
+  .toast { @apply fixed right-5 bottom-5 z-50 max-w-sm rounded-lg border border-prod/25 bg-prod-claro px-4 py-3 text-sm
+           text-prod shadow-lg; }
+
   /* O carimbo da tela de confirmação: a única peça "ruidosa" do app */
   .carimbo {
     @apply pointer-events-none absolute right-6 top-6 rotate-[-8deg] rounded-md border-[3px] px-3 py-1.5

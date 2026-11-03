@@ -6,6 +6,9 @@ from datetime import date
 import pytest
 from fastapi.testclient import TestClient
 
+from decimal import Decimal
+
+from app import main
 from app.db import Prestador, Tomador
 from app.dps import montar_dps, render_descricao, validar_xsd
 from app.importer import molde_descricao
@@ -99,3 +102,25 @@ def test_molde_descricao_troca_mes_e_ano_da_competencia():
     assert molde_descricao("Contrato 2026 {fase 2}", out) == "Contrato 2026 {{fase 2}}"
     assert render_descricao(molde_descricao("Contrato 2026 {fase 2}", out), out) == "Contrato 2026 {fase 2}"
 
+
+def test_cotacao(monkeypatch):
+    pedidos = []
+
+    def ptax(sigla, ate):
+        pedidos.append((sigla, ate))
+        return Decimal("5.42060"), date(2026, 10, 30)
+
+    monkeypatch.setattr(main, "_ptax", ptax)
+    with TestClient(app) as c:
+        r = c.get("/cotacao", params={"moeda": "220", "data": "2026-11-01"})
+        assert r.json() == {"taxa": "5.4206", "data": "2026-10-30"}
+        assert pedidos == [("USD", date(2026, 11, 1))]
+        assert c.get("/cotacao", params={"moeda": "790", "data": "2026-11-01"}).status_code == 400
+        assert c.get("/cotacao", params={"moeda": "220", "data": ""}).status_code == 400
+
+        def falha(sigla, ate):
+            raise OSError("sem rede")
+
+        monkeypatch.setattr(main, "_ptax", falha)
+        r = c.get("/cotacao", params={"moeda": "978", "data": "2026-11-01"})
+        assert r.status_code == 502 and "EUR" in r.json()["erro"]

@@ -5,13 +5,15 @@ import io
 import json
 import os
 import secrets
+import urllib.request
 from contextlib import asynccontextmanager
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import get_args
 
 from fastapi import Depends, FastAPI, Form, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.datastructures import UploadFile as StarletteUpload
@@ -125,6 +127,40 @@ def emitir_form(request: Request, tomador_id: int | None = None, s: Session = De
                     .order_by(Nota.id.desc())).first()
     return render(request, "emitir.html", tomadores=tomadores, t=t, ultima=ultima,
                   hoje=date.today().isoformat(), p=prestador(s))
+
+
+PTAX = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"
+
+
+def _ptax(sigla: str, ate: date) -> tuple[Decimal, date]:
+    """Cotação de compra do último boletim de fechamento PTAX (Banco Central) até a data.
+    Fim de semana, feriado ou antes das 13h: vale o fechamento do dia útil anterior."""
+    url = (f"{PTAX}CotacaoMoedaPeriodo(moeda=@moeda,dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)"
+           f"?@moeda='{sigla}'&@dataInicial='{ate - timedelta(days=10):%m-%d-%Y}'&@dataFinalCotacao='{ate:%m-%d-%Y}'"
+           "&$format=json&$filter=tipoBoletim%20eq%20'Fechamento'&$select=cotacaoCompra,dataHoraCotacao")
+    with urllib.request.urlopen(url, timeout=8) as r:
+        itens = json.load(r, parse_float=Decimal)["value"]
+    if not itens:
+        raise ValueError("sem cotação no período")
+    return itens[-1]["cotacaoCompra"], date.fromisoformat(itens[-1]["dataHoraCotacao"][:10])
+
+
+@app.get("/cotacao")
+def cotacao(moeda: str, data: str):
+    """Usada pela tela de emissão para converter reais ↔ moeda estrangeira enquanto se digita."""
+    sigla = MOEDAS.get(moeda)
+    if not sigla or sigla == "BRL":
+        return JSONResponse({"erro": "Moeda sem cotação."}, 400)
+    try:
+        dia = min(date.fromisoformat(data), date.today())
+    except ValueError:
+        return JSONResponse({"erro": "Preencha a data de competência para buscar a cotação."}, 400)
+    try:
+        taxa, dia_ptax = _ptax(sigla, dia)
+    except Exception:
+        return JSONResponse({"erro": f"Não deu para buscar a cotação do {sigla} no Banco Central. "
+                                     "Preencha os dois valores à mão."}, 502)
+    return {"taxa": f"{taxa:.4f}", "data": dia_ptax.isoformat()}
 
 
 def _form_emissao(form) -> dict:

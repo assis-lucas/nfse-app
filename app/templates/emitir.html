@@ -21,15 +21,16 @@
         <label>Data de competência
           <input type="date" name="competencia" value="{{ hoje }}" max="{{ hoje }}" required>
         </label>
-        <label>Valor (R$)
+        <label>Valor (R$){% if t.com_ext %}<span class="spinner hidden" aria-hidden="true"></span>{% endif %}
           <input name="valor" inputmode="decimal" placeholder="10.000,00" required autofocus value="" class="tabular-nums">
           {% if ultima %}<small>Última: {{ ultima.valor_cents|brl }} em {{ ultima.competencia.strftime("%m/%Y") }}</small>{% endif %}
         </label>
       </div>
       {% if t.com_ext %}
-      <label>Valor em {{ MOEDAS.get(t.tp_moeda, "moeda " ~ t.tp_moeda) }} (comércio exterior)
+      <label>Valor em {{ MOEDAS.get(t.tp_moeda, "moeda " ~ t.tp_moeda) }} (comércio exterior)<span class="spinner hidden" aria-hidden="true"></span>
         <input name="valor_moeda" inputmode="decimal" placeholder="2.000,00" required class="tabular-nums">
         {% if ultima and ultima.valor_moeda_cents %}<small>Última: {{ ultima.valor_moeda_cents|num }}</small>{% endif %}
+        <small id="cotacao-info">Preencha um dos dois valores: o outro é convertido pela PTAX do Banco Central.</small>
       </label>
       {% endif %}
       <label>Descrição do serviço
@@ -51,4 +52,58 @@
     <a href="/tomadores/{{ t.id }}" class="mt-4 inline-block">Editar molde</a>
   </aside>
 </div>
+{% if t.com_ext %}
+<div id="toast" role="alert" class="toast hidden"></div>
+<script>
+(() => {
+  const f = document.querySelector('form[action="/emitir/preview"]');
+  const brl = f.valor, ext = f.valor_moeda, comp = f.competencia;
+  const info = document.getElementById("cotacao-info"), toast = document.getElementById("toast");
+  const cache = {};
+  let origem = null, espera, someToast;
+
+  // "19.800,00" ou "19800.00" → 19800 (mesma regra do servidor)
+  const ler = v => {
+    let t = v.replace(/R\$|\s/g, "");
+    if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+    return t && isFinite(t) ? Number(t) : null;
+  };
+  const fmt = n => n.toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const avisa = msg => {
+    toast.textContent = msg;
+    toast.classList.remove("hidden");
+    clearTimeout(someToast);
+    someToast = setTimeout(() => toast.classList.add("hidden"), 6000);
+  };
+  const cotacao = data => cache[data] ??= fetch(`/cotacao?moeda={{ t.tp_moeda }}&data=${data}`)
+    .catch(() => { throw new Error("Sem conexão para buscar a cotação. Preencha os dois valores à mão."); })
+    .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.erro); return j; })
+    .catch(e => { delete cache[data]; throw e; });
+
+  async function converte() {
+    const n = origem && ler(origem.value);
+    if (!n) return;
+    const de = origem, alvo = de === brl ? ext : brl;
+    const spin = alvo.closest("label").querySelector(".spinner");
+    spin.classList.remove("hidden");
+    try {
+      const c = await cotacao(comp.value), taxa = Number(c.taxa);
+      if (de !== origem || ler(de.value) !== n) return;   // continuou digitando: a próxima conversão vale
+      alvo.value = fmt(de === brl ? n / taxa : n * taxa);
+      info.textContent = `PTAX de compra de ${c.data.split("-").reverse().join("/")}: ${c.taxa.replace(".", ",")}`;
+    } catch (e) {
+      avisa(e.message);
+    } finally {
+      spin.classList.add("hidden");
+    }
+  }
+  for (const el of [brl, ext]) el.addEventListener("input", () => {
+    origem = el;
+    clearTimeout(espera);
+    espera = setTimeout(converte, 500);
+  });
+  comp.addEventListener("change", converte);
+})();
+</script>
+{% endif %}
 {% endblock %}

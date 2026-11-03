@@ -46,7 +46,10 @@ carimbado: produção tem validade fiscal, homologação é só teste.
    Se vier rejeição, a mensagem do SEFIN (código E0xxx) aparece na tela; ajuste o molde do tomador.
 5. Quando o teste passar, mude para **Produção** em *Configuração* (exige marcar a confirmação).
 
-A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → emitir.
+A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → emitir. Para tomador no exterior,
+preencha o valor em reais ou na moeda estrangeira: o outro campo é convertido sozinho pela PTAX de compra
+do Banco Central (último fechamento até a data de competência). Só a moeda e a data vão para o BCB.
+
 
 Quando faltarem 90 dias ou menos para o certificado vencer, o painel e a tela *Configuração* mostram um aviso.
 Renovou? Envie o novo `.pfx` pela mesma tela: ele substitui o anterior na hora, sem reiniciar.
