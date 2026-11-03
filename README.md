@@ -112,7 +112,7 @@ Depois de mexer nos templates ou em `app/static/tailwind.css`, recompile com o
 ```bash
 # na VM (Debian/Ubuntu)
 sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2
-git clone <seu-repo> nfse && cd nfse      # ou scp do zip
+git clone https://github.com/assis-lucas/nfse-app.git nfse && cd nfse
 cp .env.example .env && nano .env
 mkdir -p data && chmod 700 data
 sudo docker compose up -d --build         # depois, envie o .pfx em Configuração pelo navegador
@@ -125,7 +125,10 @@ sudo tailscale serve --bg 8000            # https://<nome-da-vm>.<tailnet>.ts.ne
 sudo docker compose up -d                 # recarrega o .env
 ```
 
-Uma VM pequena (1 GB de RAM) dá conta com folga. Faça backup de `data/` de vez em quando
+Uma VM pequena (1 GB de RAM) dá conta com folga. Quer gastar zero? O [free tier do Google Cloud](https://docs.cloud.google.com/free/docs/free-cloud-features#compute)
+inclui uma `e2-micro` (1 GB) por mês, de graça, desde que fique em `us-west1`, `us-central1` ou `us-east1`
+e use disco *standard* de até 30 GB. Repare que essas regiões ficam nos EUA (veja o aviso sobre IP abaixo).
+Faça backup de `data/` de vez em quando
 (banco, certificado e senha: guarde o backup em lugar seguro).
 Se o SEFIN recusar conexão vinda de IP fora do Brasil, use uma VM hospedada no Brasil
 com os mesmos comandos.
@@ -145,7 +148,8 @@ app/templates/    telas (Jinja2 + Tailwind; fonte IBM Plex, OFL, em app/static/f
 ## Limitações conhecidas
 
 - Cancelamento ainda é feito no Emissor Nacional; depois é só marcar como cancelada no app.
-- Só um prestador (a sua empresa). Para vários CNPJs, dá para rodar uma instância por empresa.
+- Só um prestador (a sua empresa). Quer emitir para vários CNPJs no mesmo app? Abre um Pull Request :)
+  Enquanto isso, dá para rodar uma instância por empresa.
 - A validação XSD local só cobre o leiaute de produção. No NT 009 (homologação), quem valida é o SEFIN.
 
 ## Licença
