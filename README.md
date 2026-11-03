@@ -32,7 +32,7 @@ carimbado: produção tem validade fiscal, homologação é só teste.
 
 <img src="docs/img/confirmacao.png" alt="Tela de confirmação da nota com o carimbo de produção e o XML validado" width="100%">
 
-<sub>Prints com dados fictícios, em modo mock e com certificado autoassinado.</sub>
+<sub>Prints e GIFs com dados fictícios, em modo mock e com certificado autoassinado.</sub>
 
 ## Primeiro uso (ordem importa)
 
@@ -41,6 +41,9 @@ carimbado: produção tem validade fiscal, homologação é só teste.
 2. **Importe o XML de uma nota que você já emitiu** (Emissor Nacional → Notas Emitidas → baixar XML)
    em *Tomadores → Importar de XML*. Isso cria o tomador com exatamente os códigos, a tributação e o
    grupo de comércio exterior da nota que já foi aceita, e preenche sua empresa.
+
+   <img src="docs/img/importar.gif" alt="Importando o XML de uma nota antiga: o tomador aparece na lista e a tela de emissão já vem com o molde dele" width="100%">
+
 3. Em *Configuração*, confira CNPJ, município e regime. O ambiente começa em **Homologação**.
 4. Emita uma nota de teste. Ela vai para a *produção restrita* (sem validade jurídica).
    Se vier rejeição, a mensagem do SEFIN (código E0xxx) aparece na tela; ajuste o molde do tomador.
@@ -50,6 +53,7 @@ A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → em
 preencha o valor em reais ou na moeda estrangeira: o outro campo é convertido sozinho pela PTAX de compra
 do Banco Central (último fechamento até a data de competência). Só a moeda e a data vão para o BCB.
 
+<img src="docs/img/emitir.gif" alt="Emitindo a nota do mês: o valor em reais é convertido para dólar pela PTAX, revisão com o XML validado e a NFS-e emitida" width="100%">
 
 Quando faltarem 90 dias ou menos para o certificado vencer, o painel e a tela *Configuração* mostram um aviso.
 Renovou? Envie o novo `.pfx` pela mesma tela: ele substitui o anterior na hora, sem reiniciar.
