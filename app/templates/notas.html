@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Notas</h2>
-<form method="get" class="grid">
-  <select name="ano"><option value="">Todos os anos</option>
-    {% for a in range(2024, 2031)|reverse %}<option {{ 'selected' if a == ano }}>{{ a }}</option>{% endfor %}</select>
-  <select name="tomador_id"><option value="">Todos os tomadores</option>
-    {% for t in tomadores %}<option value="{{ t.id }}" {{ 'selected' if t.id == tomador_id }}>{{ t.apelido or t.nome }}</option>{% endfor %}</select>
-  <button type="submit" class="secondary">Filtrar</button>
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>Notas</h1>
+  <div class="flex gap-2">
+    <a href="/importar" class="btn-sec">Importar XMLs</a>
+    <a href="/notas.csv" class="btn-sec">Baixar CSV</a>
+  </div>
+</div>
+<form method="get" class="mt-6 flex flex-wrap items-end gap-3">
+  <label class="w-40">Ano<select name="ano"><option value="">Todos</option>
+    {% for a in range(2024, 2031)|reverse %}<option {{ 'selected' if a == ano }}>{{ a }}</option>{% endfor %}</select></label>
+  <label class="w-64">Tomador<select name="tomador_id"><option value="">Todos</option>
+    {% for t in tomadores %}<option value="{{ t.id }}" {{ 'selected' if t.id == tomador_id }}>{{ t.apelido or t.nome }}</option>{% endfor %}</select></label>
+  <button type="submit" class="btn-sec">Filtrar</button>
 </form>
-<p><a href="/notas.csv">Baixar CSV</a> · <a href="/importar">Importar XMLs</a></p>
-{% include "_tabela_notas.html" with context %}
+<div class="mt-6">{% include "_tabela_notas.html" with context %}</div>
 {% endblock %}

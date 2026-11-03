@@ -1,32 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>{% if n.numero_nfse %}NFS-e {{ n.numero_nfse }}{% else %}Nota #{{ n.id }}{% endif %}
+<a href="/notas" class="text-sm text-mudo">Notas</a>
+<div class="mt-1 flex flex-wrap items-center gap-3">
+  <h1>{% if n.numero_nfse %}NFS-e {{ n.numero_nfse }}{% else %}Nota #{{ n.id }}{% endif %}</h1>
   <span class="badge b-{{ 'ok' if n.status == 'emitida' else n.status }}">{{ n.status }}</span>
-  {% if n.ambiente != "producao" %}<span class="badge b-hom">teste</span>{% endif %}</h2>
-{% if n.erro_msg %}<div class="flash-erro"><strong>Retorno do SEFIN:</strong> {{ n.erro_msg }}</div>{% endif %}
-<table>
-  <tr><th>Tomador</th><td>{{ n.tomador_nome }}</td></tr>
-  <tr><th>Competência</th><td>{{ n.competencia.strftime("%d/%m/%Y") }}</td></tr>
-  <tr><th>Valor</th><td>{{ n.valor_cents|brl }}</td></tr>
-  {% if n.valor_moeda_cents %}<tr><th>Moeda estrangeira</th><td>{{ MOEDAS.get(n.tp_moeda, n.tp_moeda) }} {{ n.valor_moeda_cents|num }}</td></tr>{% endif %}
-  <tr><th>Descrição</th><td>{{ n.descricao }}</td></tr>
-  {% if n.chave %}<tr><th>Chave</th><td style="word-break:break-all">{{ n.chave }}</td></tr>{% endif %}
-  <tr><th>DPS</th><td>série {{ n.serie }} nº {{ n.ndps or "—" }}</td></tr>
-  <tr><th>Origem</th><td>{{ n.origem }} · {{ n.created_at.strftime("%d/%m/%Y %H:%M") }}</td></tr>
-</table>
-<p>
-  {% if n.xml_nfse %}<a href="/notas/{{ n.id }}/pdf" role="button">PDF (DANFSe)</a>
-  <a href="/notas/{{ n.id }}/xml" role="button" class="secondary">XML da NFS-e</a>{% endif %}
-  {% if n.xml_dps %}<a href="/notas/{{ n.id }}/xml?tipo=dps" role="button" class="outline secondary">XML da DPS</a>{% endif %}
-</p>
-{% if n.status == "emitida" %}
-<details><summary>Cancelou no Emissor Nacional?</summary>
-  <form method="post" action="/notas/{{ n.id }}/cancelada"><button class="secondary outline">Marcar como cancelada</button></form>
-</details>
-{% endif %}
-{% if n.status != "emitida" or n.origem == "importada" or n.ambiente != "producao" %}
-<form method="post" action="/notas/{{ n.id }}/excluir" onsubmit="return confirm('Remover este registro do app?')">
-  <button class="outline secondary">Remover registro</button></form>
-{% endif %}
-{% if n.status == "erro" %}<p><a href="/emitir?tomador_id={{ n.tomador_id }}">Tentar de novo</a></p>{% endif %}
+  {% if n.ambiente != "producao" %}<span class="badge b-hom">teste</span>{% endif %}
+</div>
+
+{% if n.erro_msg %}<div class="flash-erro mt-6"><strong>Retorno do SEFIN:</strong> {{ n.erro_msg }}</div>{% endif %}
+
+<div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+  <dl class="painel ficha px-5">
+    <dt>Tomador</dt><dd>{{ n.tomador_nome }}</dd>
+    <dt>Competência</dt><dd class="tabular-nums">{{ n.competencia.strftime("%d/%m/%Y") }}</dd>
+    <dt>Valor</dt><dd class="text-lg font-semibold tabular-nums">{{ n.valor_cents|brl }}</dd>
+    {% if n.valor_moeda_cents %}<dt>Moeda estrangeira</dt><dd class="tabular-nums">{{ MOEDAS.get(n.tp_moeda, n.tp_moeda) }} {{ n.valor_moeda_cents|num }}</dd>{% endif %}
+    <dt>Descrição</dt><dd>{{ n.descricao }}</dd>
+    {% if n.chave %}<dt>Chave de acesso</dt><dd class="font-mono text-[13px] break-all">{{ n.chave }}</dd>{% endif %}
+    <dt>DPS</dt><dd>série {{ n.serie }} nº {{ n.ndps or "—" }}</dd>
+    <dt>Origem</dt><dd>{{ n.origem }}, em {{ n.created_at.strftime("%d/%m/%Y %H:%M") }}</dd>
+  </dl>
+
+  <aside class="flex flex-col gap-2">
+    {% if n.xml_nfse %}
+    <a href="/notas/{{ n.id }}/pdf" class="btn-primario">Baixar PDF (DANFSe)</a>
+    <a href="/notas/{{ n.id }}/xml" class="btn-sec">XML da NFS-e</a>
+    {% endif %}
+    {% if n.xml_dps %}<a href="/notas/{{ n.id }}/xml?tipo=dps" class="btn-sec">XML da DPS</a>{% endif %}
+    {% if n.status == "erro" %}<a href="/emitir?tomador_id={{ n.tomador_id }}" class="btn-primario">Tentar de novo</a>{% endif %}
+
+    <div class="mt-4 space-y-2 border-t border-linha pt-4">
+      {% if n.status == "emitida" %}
+      <details class="text-sm">
+        <summary class="cursor-pointer text-mudo hover:text-tinta">Cancelou no Emissor Nacional?</summary>
+        <form method="post" action="/notas/{{ n.id }}/cancelada" class="mt-2"><button class="btn-sec w-full">Marcar como cancelada</button></form>
+      </details>
+      {% endif %}
+      {% if n.status != "emitida" or n.origem == "importada" or n.ambiente != "producao" %}
+      <form method="post" action="/notas/{{ n.id }}/excluir" onsubmit="return confirm('Remover este registro do app?')">
+        <button class="btn-sutil w-full justify-start text-prod hover:bg-prod-claro hover:text-prod">Remover registro</button></form>
+      {% endif %}
+    </div>
+  </aside>
+</div>
 {% endblock %}

@@ -115,7 +115,7 @@ def cert_info() -> dict:
     info = {"origem": origem, "origem_txt": ORIGENS.get(origem, "")}
     if not caminho:
         return {**info, "ok": False, "erro": "Nenhum certificado configurado. Envie o seu .pfx em "
-                "Config (ou defina NFSE_CERT_PATH e NFSE_CERT_SENHA)."}
+                "Configuração (ou defina NFSE_CERT_PATH e NFSE_CERT_SENHA)."}
     if not os.path.exists(caminho):
         return {**info, "ok": False, "erro": f"Arquivo do certificado não encontrado ({caminho})."}
     try:
@@ -123,7 +123,7 @@ def cert_info() -> dict:
             return {**info, **_resumo(_abrir_pfx(f.read(), senha))}
     except Exception as e:
         msg = str(e) if isinstance(e, CertificadoInvalido) else f"Não consegui abrir o certificado: {e}"
-        dica = " Envie o certificado de novo em Config." if origem == "interface" else ""
+        dica = " Envie o certificado de novo em Configuração." if origem == "interface" else ""
         return {**info, "ok": False, "erro": msg + dica}
 
 

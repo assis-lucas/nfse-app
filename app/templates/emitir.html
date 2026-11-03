@@ -1,40 +1,54 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Emitir nota
-  <span class="badge {{ 'b-prod' if p.ambiente == 'producao' else 'b-hom' }}">{{ "PRODUÇÃO" if p.ambiente == "producao" else "HOMOLOGAÇÃO" }}</span></h2>
+<div class="flex flex-wrap items-center gap-3">
+  <h1>Emitir nota</h1>
+  <span class="badge {{ 'b-prod' if p.ambiente == 'producao' else 'b-hom' }}">{{ "Produção" if p.ambiente == "producao" else "Homologação (teste)" }}</span>
+</div>
 
-<form method="get" action="/emitir">
-  <label>Tomador
-    <select name="tomador_id" onchange="this.form.submit()">
-      {% for x in tomadores %}<option value="{{ x.id }}" {{ 'selected' if x.id == t.id }}>{{ x.apelido or x.nome }}</option>{% endfor %}
-    </select>
-  </label>
-</form>
+<div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem]">
+  <div class="secao">
+    <form method="get" action="/emitir">
+      <label>Tomador
+        <select name="tomador_id" onchange="this.form.submit()">
+          {% for x in tomadores %}<option value="{{ x.id }}" {{ 'selected' if x.id == t.id }}>{{ x.apelido or x.nome }}</option>{% endfor %}
+        </select>
+      </label>
+    </form>
 
-<form method="post" action="/emitir/preview">
-  <input type="hidden" name="tomador_id" value="{{ t.id }}">
-  <div class="grid">
-    <label>Data de competência
-      <input type="date" name="competencia" value="{{ hoje }}" max="{{ hoje }}" required>
-    </label>
-    <label>Valor (R$)
-      <input name="valor" inputmode="decimal" placeholder="10.000,00" required autofocus
-             value="">
-      {% if ultima %}<small>Última: {{ ultima.valor_cents|brl }} em {{ ultima.competencia.strftime("%m/%Y") }}</small>{% endif %}
-    </label>
+    <form method="post" action="/emitir/preview" class="campos">
+      <input type="hidden" name="tomador_id" value="{{ t.id }}">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label>Data de competência
+          <input type="date" name="competencia" value="{{ hoje }}" max="{{ hoje }}" required>
+        </label>
+        <label>Valor (R$)
+          <input name="valor" inputmode="decimal" placeholder="10.000,00" required autofocus value="" class="tabular-nums">
+          {% if ultima %}<small>Última: {{ ultima.valor_cents|brl }} em {{ ultima.competencia.strftime("%m/%Y") }}</small>{% endif %}
+        </label>
+      </div>
+      {% if t.com_ext %}
+      <label>Valor em {{ MOEDAS.get(t.tp_moeda, "moeda " ~ t.tp_moeda) }} (comércio exterior)
+        <input name="valor_moeda" inputmode="decimal" placeholder="2.000,00" required class="tabular-nums">
+        {% if ultima and ultima.valor_moeda_cents %}<small>Última: {{ ultima.valor_moeda_cents|num }}</small>{% endif %}
+      </label>
+      {% endif %}
+      <label>Descrição do serviço
+        <textarea name="descricao" rows="3" required>{{ t.descricao_padrao }}</textarea>
+        <small>Pode usar {mes}, {mes_nome}, {ano}, {competencia}: viram o mês/ano da competência.</small>
+      </label>
+      <div class="pt-2"><button type="submit" class="btn-primario">Revisar antes de emitir</button></div>
+    </form>
   </div>
-  {% if t.com_ext %}
-  <label>Valor em {{ MOEDAS.get(t.tp_moeda, "moeda " ~ t.tp_moeda) }} (comércio exterior)
-    <input name="valor_moeda" inputmode="decimal" placeholder="2.000,00" required>
-    {% if ultima and ultima.valor_moeda_cents %}<small>Última: {{ ultima.valor_moeda_cents|num }}</small>{% endif %}
-  </label>
-  {% endif %}
-  <label>Descrição do serviço
-    <textarea name="descricao" rows="3" required>{{ t.descricao_padrao }}</textarea>
-    <small>Pode usar {mes}, {mes_nome}, {ano}, {competencia}: viram o mês/ano da competência.</small>
-  </label>
-  <button type="submit">Revisar antes de emitir →</button>
-</form>
-<p class="muted">Tomador: {{ t.nome }} · {{ t.tipo_doc }} {{ t.documento }} · cTribNac {{ t.c_trib_nac }}
-  {% if t.trib_issqn == 3 %}· exportação ({{ t.c_pais_result }}){% endif %} — <a href="/tomadores/{{ t.id }}">editar molde</a></p>
+
+  <aside class="text-sm">
+    <h2 class="text-sm font-medium text-mudo">Molde deste tomador</h2>
+    <dl class="mt-3 space-y-3">
+      <div><dt class="text-mudo">Nome</dt><dd class="font-medium">{{ t.nome }}</dd></div>
+      <div><dt class="text-mudo">{{ t.tipo_doc }}</dt><dd class="tabular-nums">{{ t.documento or "—" }}</dd></div>
+      <div><dt class="text-mudo">Código de tributação</dt><dd class="tabular-nums">{{ t.c_trib_nac }}</dd></div>
+      {% if t.trib_issqn == 3 %}<div><dt class="text-mudo">ISSQN</dt><dd>Exportação, resultado em {{ t.c_pais_result }}</dd></div>{% endif %}
+    </dl>
+    <a href="/tomadores/{{ t.id }}" class="mt-4 inline-block">Editar molde</a>
+  </aside>
+</div>
 {% endblock %}

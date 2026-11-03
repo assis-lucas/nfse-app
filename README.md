@@ -70,11 +70,16 @@ A tela também avisa se o CNPJ do certificado for diferente do CNPJ configurado 
 
 ```bash
 cp .env.example .env    # opcional: tudo tem padrão
-docker compose up -d --build     # http://127.0.0.1:8000 → Config → envie o certificado
+docker compose up -d --build     # http://127.0.0.1:8000 → Configuração → envie o certificado
 ```
 
 Sem Docker: `pip install -r requirements.txt && uvicorn app.main:app` (use as mesmas variáveis).
 Testes: `pip install pytest httpx && pytest -q` (rodam em modo mock, sem tocar no governo).
+
+CSS: Tailwind v4. O `app/static/app.css` compilado vai no repositório (o Docker não precisa de Node).
+Depois de mexer nos templates ou em `app/static/tailwind.css`, recompile com o
+[CLI standalone](https://github.com/tailwindlabs/tailwindcss/releases):
+`tailwindcss -i app/static/tailwind.css -o app/static/app.css --minify`.
 
 ## Deploy numa VM Linux
 
@@ -84,7 +89,7 @@ sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2
 git clone <seu-repo> nfse && cd nfse      # ou scp do zip
 cp .env.example .env && nano .env
 mkdir -p data && chmod 700 data
-sudo docker compose up -d --build         # depois, envie o .pfx em Config pelo navegador
+sudo docker compose up -d --build         # depois, envie o .pfx em Configuração pelo navegador
 
 # acesso privado pelo celular/notebook, sem abrir porta:
 curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
@@ -108,6 +113,7 @@ app/sefin.py      assinatura, envio, idempotência, modo mock, certificado (leit
 app/main.py       rotas/telas
 app/seguranca.py  allowlist de Host (DNS rebinding) e checagem de Origin (CSRF)
 app/db.py         modelos (valores em centavos)
+app/templates/    telas (Jinja2 + Tailwind; fonte IBM Plex, OFL, em app/static/fonts)
 ```
 
 ## Limitações conhecidas

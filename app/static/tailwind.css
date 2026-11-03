@@ -1,0 +1,119 @@
+/* Fonte do app.css. Depois de mexer aqui ou nos templates, recompile:
+   tailwindcss -i app/static/tailwind.css -o app/static/app.css --minify
+   (CLI standalone do Tailwind v4: github.com/tailwindlabs/tailwindcss/releases) */
+@import "tailwindcss";
+@source "../templates";
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("fonts/plex-sans.woff2") format("woff2");
+  font-weight: 100 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("fonts/plex-mono.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-papel: #f4f5f3;
+  --color-tinta: #16191d;
+  --color-mudo: #646b73;
+  --color-linha: #e2e4e1;
+  --color-carimbo: #3d3a9c;
+  --color-carimbo-claro: #ecebf8;
+  --color-prod: #b42318;
+  --color-prod-claro: #fdeceb;
+  --color-hom: #a15c07;
+  --color-hom-claro: #fdf3e2;
+  --color-ok: #1e7a4c;
+  --color-ok-claro: #e6f4ec;
+}
+
+@layer base {
+  html { @apply bg-papel text-tinta antialiased; font-feature-settings: "ss02"; }
+  body { @apply min-h-dvh font-sans text-[15px] leading-6; }
+  h1 { @apply text-[28px] leading-9 font-semibold tracking-tight; }
+  h2 { @apply text-lg font-semibold tracking-tight; }
+  a { @apply text-carimbo underline-offset-4 hover:underline; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-carimbo; }
+  ::selection { @apply bg-carimbo-claro; }
+
+  label { @apply block text-sm font-medium text-tinta; }
+  input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"]), select, textarea {
+    @apply mt-1.5 block w-full rounded-md border border-linha bg-white px-3 py-2 text-[15px] font-normal
+           shadow-[inset_0_1px_0_rgb(0_0_0/0.03)] transition-colors placeholder:text-mudo/60
+           hover:border-mudo/40 focus:border-carimbo focus:outline-none focus:ring-3 focus:ring-carimbo/15;
+  }
+  select { @apply appearance-none bg-[length:16px] bg-[right_.6rem_center] bg-no-repeat pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23646b73'%3E%3Cpath d='M5.2 7.6 10 12.4l4.8-4.8'/%3E%3C/svg%3E"); }
+  input[type="checkbox"] { @apply size-4 rounded accent-carimbo align-[-2px]; }
+  input[type="file"] { @apply mt-1.5 block w-full text-sm text-mudo file:mr-3 file:rounded-md file:border-0
+           file:bg-tinta file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-tinta/85; }
+  label small, .ajuda { @apply mt-1 block text-[13px] leading-5 font-normal text-mudo; }
+  table { @apply w-full text-sm; }
+  th { @apply text-left font-medium text-mudo; }
+}
+
+@utility painel { @apply rounded-xl border border-linha bg-white; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium
+         no-underline transition-colors hover:no-underline disabled:opacity-60 cursor-pointer; }
+
+@layer components {
+  .num { @apply text-right tabular-nums whitespace-nowrap; }
+  .muted { @apply text-[13px] text-mudo; }
+
+  .btn-primario { @apply btn bg-tinta text-white hover:bg-tinta/85; }
+  .btn-prod { @apply btn bg-prod text-white hover:bg-prod/90; }
+  .btn-sec { @apply btn border border-linha bg-white text-tinta hover:border-mudo/40 hover:bg-papel; }
+  .btn-sutil { @apply btn px-2 text-mudo hover:bg-papel hover:text-tinta; }
+
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap; }
+  .b-prod, .b-erro { @apply bg-prod-claro text-prod; }
+  .b-hom { @apply bg-hom-claro text-hom; }
+  .b-ok { @apply bg-ok-claro text-ok; }
+  .b-cancelada { @apply bg-papel text-mudo line-through decoration-mudo/50; }
+  .b-imp { @apply bg-carimbo-claro text-carimbo; }
+
+  .flash-ok, .flash-erro, .flash-aviso { @apply mb-6 rounded-lg border px-4 py-3 text-sm; }
+  .flash-ok { @apply border-ok/25 bg-ok-claro text-ok; }
+  .flash-erro { @apply border-prod/25 bg-prod-claro text-prod; }
+  .flash-aviso { @apply border-hom/25 bg-hom-claro text-hom; }
+  :is(.flash-ok, .flash-erro, .flash-aviso) a { @apply font-medium text-current underline; }
+
+  /* Tabela de dados: linhas separadas por hairline, cabeçalho discreto */
+  .tabela th { @apply border-b border-linha px-4 py-2.5 text-[13px]; }
+  .tabela td { @apply border-b border-linha px-4 py-3; }
+  .tabela tbody tr:last-child td { @apply border-b-0; }
+  .tabela tbody tr { @apply transition-colors hover:bg-papel/60; }
+
+  /* Lista de definição (detalhe da nota, confirmação) */
+  .ficha { @apply grid grid-cols-1 sm:grid-cols-[11rem_1fr]; }
+  .ficha dt { @apply pt-3 text-[13px] text-mudo sm:border-b sm:border-linha sm:py-3; }
+  .ficha dd { @apply border-b border-linha pb-3 sm:py-3; }
+  .ficha > :nth-last-child(-n+2) { @apply border-b-0; }
+
+  .secao { @apply painel p-5 sm:p-6; }
+  .secao > legend, .secao > summary { @apply text-base font-semibold; }
+  details.secao > summary { @apply -mx-5 -mt-5 cursor-pointer list-none px-5 pt-5 select-none sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6; }
+  details.secao > summary::-webkit-details-marker { display: none; }
+  details.secao > summary::after { content: "+"; @apply float-right text-mudo; }
+  details.secao[open] > summary::after { content: "−"; }
+  .secao > :where(:not(legend, summary, :first-child)) { @apply mt-4; }
+  .secao > legend { @apply mb-4; }
+  .secao > legend + * { clear: both; margin-top: 0; }
+  .grade { @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-3; }
+  .campos { @apply mt-5 space-y-4; }
+
+  /* O carimbo da tela de confirmação: a única peça "ruidosa" do app */
+  .carimbo {
+    @apply pointer-events-none absolute right-6 top-6 rotate-[-8deg] rounded-md border-[3px] px-3 py-1.5
+           text-center text-sm leading-tight font-semibold tracking-wide opacity-85 sm:right-10 sm:top-8;
+    mask-image: radial-gradient(circle at 30% 40%, #000 60%, rgb(0 0 0 / 0.75) 100%);
+  }
+}

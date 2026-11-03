@@ -1,34 +1,54 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Confirme a nota</h2>
-<article>
-  <header><span class="badge {{ 'b-prod' if p.ambiente == 'producao' else 'b-hom' }}">
-    {{ "PRODUÇÃO — nota com validade fiscal" if p.ambiente == "producao" else "HOMOLOGAÇÃO — teste, sem validade" }}</span></header>
-  <table>
-    <tr><th>Tomador</th><td>{{ t.nome }}<br><span class="muted">{{ t.tipo_doc }} {{ t.documento }}{% if t.end_pais %} · {{ t.end_pais }}{% endif %}</span></td></tr>
-    <tr><th>Competência</th><td>{{ d.competencia.strftime("%d/%m/%Y") }}</td></tr>
-    <tr><th>Valor</th><td><strong>{{ valor_cents|brl }}</strong></td></tr>
-    {% if vm_cents %}<tr><th>Valor em {{ MOEDAS.get(t.tp_moeda, t.tp_moeda) }}</th><td>{{ vm_cents|num }} <span class="muted">(câmbio implícito {{ cotacao }})</span></td></tr>{% endif %}
-    <tr><th>Descrição</th><td>{{ desc }}</td></tr>
-    <tr><th>Serviço</th><td>cTribNac {{ t.c_trib_nac }}{% if t.c_nbs %} · NBS {{ t.c_nbs }}{% endif %}</td></tr>
-    <tr><th>ISSQN</th><td>{{ {1:"Tributável",2:"Imunidade",3:"Exportação",4:"Não incidência"}[t.trib_issqn] }}{% if t.trib_issqn == 3 %} · resultado em {{ t.c_pais_result }}{% endif %}</td></tr>
-    <tr><th>DPS</th><td>série {{ p.serie }} nº {{ ndps }} · leiaute {{ leiaute }}</td></tr>
-  </table>
-  {% if not cert.ok %}<p class="flash-erro">Certificado: {{ cert.erro }}</p>{% endif %}
-  {% if erros_xsd %}<div class="flash-erro"><strong>XML não passou no XSD:</strong><ul>{% for e in erros_xsd %}<li>{{ e }}</li>{% endfor %}</ul></div>
-  {% elif erros_xsd is not none %}<p class="muted">✓ XML válido no XSD oficial 1.01.</p>{% endif %}
-  <details><summary>Ver XML da DPS</summary><pre>{{ xml }}</pre></details>
-  <footer>
-    <form method="post" action="/emitir/confirmar" onsubmit="this.querySelector('button').setAttribute('aria-busy','true');this.querySelector('button').disabled=true;">
-      <input type="hidden" name="token" value="{{ token }}">
-      <input type="hidden" name="tomador_id" value="{{ t.id }}">
-      <input type="hidden" name="competencia" value="{{ d.competencia.isoformat() }}">
-      <input type="hidden" name="valor" value="{{ d.valor }}">
-      <input type="hidden" name="valor_moeda" value="{{ d.valor_moeda or '' }}">
-      <input type="hidden" name="descricao" value="{{ d.descricao }}">
-      <button type="submit" {{ 'class=contrast' if p.ambiente == 'producao' }}>Emitir {{ "em PRODUÇÃO" if p.ambiente == "producao" else "(teste)" }}</button>
-    </form>
-    <a href="/emitir?tomador_id={{ t.id }}">← voltar e corrigir</a>
-  </footer>
+{% set prod = p.ambiente == "producao" %}
+<h1>Confirme a nota</h1>
+<p class="mt-1 text-mudo">Confira os dados como vão para o SEFIN. Nada foi enviado ainda.</p>
+
+<article class="relative mt-8 overflow-hidden rounded-xl border border-linha bg-white shadow-[0_1px_0_rgb(0_0_0/0.04),0_12px_32px_-16px_rgb(22_25_29/0.18)]">
+  <div class="carimbo {{ 'border-prod text-prod' if prod else 'border-hom text-hom' }}" aria-hidden="true">
+    {% if prod %}PRODUÇÃO<br><span class="text-[11px] font-medium tracking-normal">com validade fiscal</span>
+    {% else %}HOMOLOGAÇÃO<br><span class="text-[11px] font-medium tracking-normal">teste, sem validade</span>{% endif %}
+  </div>
+  <p class="sr-only">{{ "Produção: nota com validade fiscal" if prod else "Homologação: teste, sem validade" }}</p>
+
+  <header class="border-b border-dashed border-linha px-6 pt-6 pb-5 sm:px-10 sm:pt-8">
+    <p class="text-sm text-mudo">Nota fiscal de serviço eletrônica</p>
+    <p class="mt-1 text-sm text-mudo">DPS série {{ p.serie }}, nº {{ ndps }}, leiaute {{ leiaute }}</p>
+    <p class="mt-6 text-sm text-mudo">Valor do serviço</p>
+    <p class="text-[40px] leading-[1.1] font-semibold tracking-tight tabular-nums">{{ valor_cents|brl }}</p>
+    {% if vm_cents %}<p class="mt-1 text-sm tabular-nums">{{ MOEDAS.get(t.tp_moeda, t.tp_moeda) }} {{ vm_cents|num }} <span class="text-mudo">(câmbio implícito {{ cotacao }})</span></p>{% endif %}
+  </header>
+
+  <dl class="ficha px-6 sm:px-10">
+    <dt>Tomador</dt><dd><span class="font-medium">{{ t.nome }}</span><br><span class="muted">{{ t.tipo_doc }} {{ t.documento }}{% if t.end_pais %}, {{ t.end_pais }}{% endif %}</span></dd>
+    <dt>Competência</dt><dd class="tabular-nums">{{ d.competencia.strftime("%d/%m/%Y") }}</dd>
+    <dt>Descrição</dt><dd>{{ desc }}</dd>
+    <dt>Serviço</dt><dd>cTribNac {{ t.c_trib_nac }}{% if t.c_nbs %}, NBS {{ t.c_nbs }}{% endif %}</dd>
+    <dt>ISSQN</dt><dd>{{ {1:"Tributável",2:"Imunidade",3:"Exportação",4:"Não incidência"}[t.trib_issqn] }}{% if t.trib_issqn == 3 %}, resultado em {{ t.c_pais_result }}{% endif %}</dd>
+  </dl>
+
+  <div class="space-y-4 border-t border-dashed border-linha bg-papel/50 px-6 py-5 sm:px-10">
+    {% if not cert.ok %}<p class="flash-erro mb-0">Certificado: {{ cert.erro }}</p>{% endif %}
+    {% if erros_xsd %}<div class="flash-erro mb-0"><strong>XML não passou no XSD:</strong><ul class="mt-1 list-disc pl-5">{% for e in erros_xsd %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% elif erros_xsd is not none %}<p class="flex items-center gap-2 text-sm text-ok">
+      <svg viewBox="0 0 16 16" class="size-4" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      XML válido no XSD oficial 1.01.</p>{% endif %}
+    <details class="text-sm">
+      <summary class="cursor-pointer text-mudo hover:text-tinta">Ver XML da DPS</summary>
+      <pre class="mt-3 max-h-[50vh] overflow-auto rounded-lg border border-linha bg-white p-4 font-mono text-xs break-all whitespace-pre-wrap">{{ xml }}</pre>
+    </details>
+  </div>
 </article>
+
+<form method="post" action="/emitir/confirmar" class="mt-6 flex flex-wrap items-center gap-4"
+      onsubmit="const b=this.querySelector('button');b.disabled=true;b.textContent='Enviando ao SEFIN…';">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="tomador_id" value="{{ t.id }}">
+  <input type="hidden" name="competencia" value="{{ d.competencia.isoformat() }}">
+  <input type="hidden" name="valor" value="{{ d.valor }}">
+  <input type="hidden" name="valor_moeda" value="{{ d.valor_moeda or '' }}">
+  <input type="hidden" name="descricao" value="{{ d.descricao }}">
+  <button type="submit" class="{{ 'btn-prod' if prod else 'btn-primario' }} px-5 py-2.5">Emitir {{ "em produção" if prod else "(teste)" }}</button>
+  <a href="/emitir?tomador_id={{ t.id }}" class="text-sm text-mudo">Voltar e corrigir</a>
+</form>
 {% endblock %}

@@ -1,21 +1,23 @@
-<div class="overflow-auto">
-<table class="striped">
-  <thead><tr><th>Comp.</th><th>Tomador</th><th>Nº</th><th class="num">Valor</th><th>Status</th></tr></thead>
+<div class="painel overflow-x-auto">
+<table class="tabela">
+  <thead><tr><th>Competência</th><th>Tomador</th><th>Nº</th><th class="num">Valor</th><th>Status</th></tr></thead>
   <tbody>
   {% for n in (notas if notas is defined else ultimas) %}
     <tr>
-      <td>{{ n.competencia.strftime("%m/%Y") }}</td>
-      <td><a href="/notas/{{ n.id }}">{{ n.tomador_nome }}</a></td>
-      <td>{{ n.numero_nfse or "—" }}</td>
-      <td class="num">{{ n.valor_cents|brl }}</td>
+      <td class="tabular-nums text-mudo">{{ n.competencia.strftime("%m/%Y") }}</td>
+      <td><a href="/notas/{{ n.id }}" class="font-medium text-tinta">{{ n.tomador_nome }}</a></td>
+      <td class="tabular-nums">{{ n.numero_nfse or "—" }}</td>
+      <td class="num font-medium">{{ n.valor_cents|brl }}</td>
       <td>
-        <span class="badge b-{{ 'ok' if n.status == 'emitida' else n.status }}">{{ n.status }}</span>
-        {% if n.origem == "importada" %}<span class="badge b-imp">imp.</span>{% endif %}
-        {% if n.ambiente != "producao" %}<span class="badge b-hom">teste</span>{% endif %}
+        <span class="flex flex-wrap gap-1">
+          <span class="badge b-{{ 'ok' if n.status == 'emitida' else n.status }}">{{ n.status }}</span>
+          {% if n.origem == "importada" %}<span class="badge b-imp" title="Importada de XML">importada</span>{% endif %}
+          {% if n.ambiente != "producao" %}<span class="badge b-hom">teste</span>{% endif %}
+        </span>
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="5" class="muted">Nenhuma nota ainda.</td></tr>
+    <tr><td colspan="5" class="py-10 text-center text-mudo">Nenhuma nota ainda. <a href="/emitir">Emita a primeira</a> ou <a href="/importar">importe XMLs</a>.</td></tr>
   {% endfor %}
   </tbody>
 </table>

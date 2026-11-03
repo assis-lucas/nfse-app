@@ -1,45 +1,39 @@
 <!doctype html>
-<html lang="pt-BR" data-theme="light">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NFS-e</title>
-<link rel="stylesheet" href="/static/pico.min.css">
-<style>
-  :root { --pico-font-size: 16px; }
-  nav { margin-bottom: .5rem; }
-  .badge { padding: .1rem .5rem; border-radius: 1rem; font-size: .8rem; font-weight: 600; white-space: nowrap; }
-  .b-prod { background: #c62828; color: #fff; } .b-hom { background: #f9a825; color: #000; }
-  .b-ok { background: #2e7d32; color: #fff; } .b-erro { background: #c62828; color: #fff; }
-  .b-cancelada { background: #757575; color: #fff; } .b-imp { background: #1565c0; color: #fff; }
-  .flash-ok { border-left: 4px solid #2e7d32; padding: .6rem 1rem; background: #e8f5e9; margin-bottom: 1rem; }
-  .flash-erro { border-left: 4px solid #c62828; padding: .6rem 1rem; background: #ffebee; margin-bottom: 1rem; }
-  .flash-aviso { border-left: 4px solid #f9a825; padding: .6rem 1rem; background: #fff8e1; margin-bottom: 1rem; }
-  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
-  .kpi { padding: 1rem; border: 1px solid var(--pico-muted-border-color); border-radius: .5rem; }
-  .kpi small { display: block; color: var(--pico-muted-color); } .kpi strong { font-size: 1.3rem; }
-  pre { white-space: pre-wrap; word-break: break-all; font-size: .75rem; max-height: 50vh; overflow: auto; }
-  table { font-size: .9rem; } td, th { padding: .4rem .5rem; }
-  .muted { color: var(--pico-muted-color); font-size: .85rem; }
-  fieldset legend { font-weight: 600; }
-</style>
+<title>{% block title %}NFS-e{% endblock %}</title>
+<link rel="preload" href="/static/fonts/plex-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-<header class="container">
-  <nav>
-    <ul><li><strong style="white-space:nowrap"><a href="/" class="contrast" style="text-decoration:none">🧾 NFS-e</a></strong></li></ul>
-    <ul>
-      <li><a href="/emitir">Emitir</a></li>
-      <li><a href="/notas">Notas</a></li>
-      <li><a href="/tomadores">Tomadores</a></li>
-      <li><a href="/config">Config</a></li>
-    </ul>
-  </nav>
-  {% if MOCK %}<p class="flash-erro">MODO MOCK ativo (NFSE_MOCK=1): nenhuma nota é enviada ao governo.</p>{% endif %}
+{% set atual = request.url.path %}
+<header class="border-b border-linha bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70 sticky top-0 z-10">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-2 px-5 py-3">
+    <a href="/" class="flex items-center gap-2.5 text-tinta no-underline hover:no-underline">
+      <svg viewBox="0 0 32 32" class="size-7 text-carimbo" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
+        <path d="M11.5 16.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="font-semibold tracking-tight">NFS-e</span>
+    </a>
+    <nav aria-label="Principal" class="order-last -mx-2 flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
+      {% for href, nome in [("/emitir", "Emitir"), ("/notas", "Notas"), ("/tomadores", "Tomadores"), ("/config", "Configuração")] %}
+      <a href="{{ href }}" {% if atual.startswith(href) %}aria-current="page"{% endif %}
+         class="rounded-md px-2.5 py-1.5 text-sm text-mudo no-underline hover:bg-papel hover:text-tinta hover:no-underline aria-[current=page]:bg-papel aria-[current=page]:font-medium aria-[current=page]:text-tinta">{{ nome }}</a>
+      {% endfor %}
+    </nav>
+  </div>
 </header>
-<main class="container">
-  {% if flash %}<div class="flash-{{ flash.tipo }}">{{ flash.msg }}</div>{% endif %}
+{% if MOCK %}
+<div class="border-b border-prod/20 bg-prod-claro">
+  <p class="mx-auto max-w-5xl px-5 py-2 text-sm text-prod">Modo MOCK ativo (NFSE_MOCK=1): nenhuma nota é enviada ao governo.</p>
+</div>
+{% endif %}
+<main class="mx-auto max-w-5xl px-5 pt-8 pb-20 sm:pt-10">
+  {% if flash %}<div class="flash-{{ flash.tipo }}" role="status">{{ flash.msg }}</div>{% endif %}
   {% block content %}{% endblock %}
 </main>
 </body>

@@ -9,36 +9,37 @@
 </select>{% if help %}<small>{{ help }}</small>{% endif %}</label>
 {%- endmacro %}
 {% block content %}
-<h2>{{ "Editar" if t.id else "Novo" }} tomador</h2>
-<form method="post" action="/tomadores/salvar">
+<a href="/tomadores" class="text-sm text-mudo">Tomadores</a>
+<h1 class="mt-1">{{ "Editar" if t.id else "Novo" }} tomador</h1>
+<form method="post" action="/tomadores/salvar" class="mt-8 max-w-3xl space-y-5">
   <input type="hidden" name="id" value="{{ t.id or '' }}">
 
-  <fieldset><legend>Identificação</legend>
+  <fieldset class="secao"><legend class="float-left w-full">Identificação</legend>
     {{ inp("apelido", "Apelido (aparece nos botões)", ph="Empresa X") }}
     {{ inp("nome", "Razão social / nome") }}
-    <div class="grid">
+    <div class="grade">
       {{ sel("tipo_doc", "Documento", [("CNPJ","CNPJ"),("CPF","CPF"),("NIF","NIF (estrangeiro)"),("SEM_NIF","Estrangeiro sem NIF")]) }}
       {{ inp("documento", "Número", "Vazio se 'sem NIF'") }}
     </div>
-    <div class="grid">
+    <div class="grade">
       {{ sel("c_nao_nif", "Motivo sem NIF", [("0","0 - Não informado"),("1","1 - Dispensado"),("2","2 - Não exigência")], "Só para 'sem NIF'") }}
       {{ inp("im", "Inscrição municipal") }}
     </div>
-    <div class="grid">{{ inp("email", "E-mail") }}{{ inp("fone", "Telefone") }}</div>
-    <label><input type="checkbox" name="ativo" value="1" {{ 'checked' if t.ativo }}> Ativo</label>
+    <div class="grade">{{ inp("email", "E-mail") }}{{ inp("fone", "Telefone") }}</div>
+    <label class="flex items-center gap-2 font-normal"><input type="checkbox" name="ativo" value="1" {{ 'checked' if t.ativo }}> Ativo</label>
   </fieldset>
 
-  <details {{ 'open' if not t.id }}><summary>Endereço</summary>
+  <details class="secao" {{ 'open' if not t.id }}><summary>Endereço</summary>
     {{ sel("end_tipo", "Tipo", [("nenhum","Não informar"),("nacional","Brasil"),("exterior","Exterior")]) }}
-    <div class="grid">{{ inp("end_cep", "CEP (Brasil)") }}{{ inp("end_cmun", "Município IBGE (Brasil)") }}</div>
-    <div class="grid">{{ inp("end_pais", "País ISO (exterior)", ph="US") }}{{ inp("end_cod_postal", "Código postal (exterior)") }}</div>
-    <div class="grid">{{ inp("end_cidade", "Cidade (exterior)") }}{{ inp("end_estado", "Estado/província (exterior)") }}</div>
+    <div class="grade">{{ inp("end_cep", "CEP (Brasil)") }}{{ inp("end_cmun", "Município IBGE (Brasil)") }}</div>
+    <div class="grade">{{ inp("end_pais", "País ISO (exterior)", ph="US") }}{{ inp("end_cod_postal", "Código postal (exterior)") }}</div>
+    <div class="grade">{{ inp("end_cidade", "Cidade (exterior)") }}{{ inp("end_estado", "Estado/província (exterior)") }}</div>
     {{ inp("end_lgr", "Logradouro") }}
-    <div class="grid">{{ inp("end_nro", "Número") }}{{ inp("end_cpl", "Complemento") }}{{ inp("end_bairro", "Bairro") }}</div>
+    <div class="grade">{{ inp("end_nro", "Número") }}{{ inp("end_cpl", "Complemento") }}{{ inp("end_bairro", "Bairro") }}</div>
   </details>
 
-  <details open><summary>Serviço (molde da nota)</summary>
-    <div class="grid">
+  <details class="secao" open><summary>Serviço (molde da nota)</summary>
+    <div class="grade">
       {{ inp("c_trib_nac", "Código de tributação nacional", "6 dígitos: item + subitem + desdobro (ex.: 010101)") }}
       {{ inp("c_trib_mun", "Código de tributação municipal", "Se o seu município exigir") }}
       {{ inp("c_nbs", "Código NBS", "9 dígitos") }}
@@ -49,48 +50,48 @@
     {{ inp("c_loc_prestacao", "Município da prestação (IBGE)", "Vazio = o da sua empresa") }}
   </details>
 
-  <details open><summary>Tributação</summary>
-    <div class="grid">
+  <details class="secao" open><summary>Tributação</summary>
+    <div class="grade">
       {{ sel("trib_issqn", "ISSQN", [(1,"1 - Tributável"),(2,"2 - Imunidade"),(3,"3 - Exportação de serviço"),(4,"4 - Não incidência")]) }}
       {{ inp("c_pais_result", "País do resultado (exportação)", ph="US") }}
     </div>
-    <div class="grid">
+    <div class="grade">
       {{ sel("tp_ret_issqn", "Retenção ISS", [(1,"1 - Não retido"),(2,"2 - Retido pelo tomador"),(3,"3 - Retido pelo intermediário")]) }}
       {{ inp("p_aliq", "Alíquota ISS %", "Normalmente vazio no Simples") }}
     </div>
-    <div class="grid">
+    <div class="grade">
       {{ inp("piscofins_cst", "CST PIS/COFINS", "Vazio = não envia tributos federais") }}
       {{ inp("tp_ret_piscofins", "Retenção PIS/COFINS", "Opcional") }}
     </div>
-    <div class="grid">
+    <div class="grade">
       {{ sel("tot_trib_modo", "Tributos aproximados", [("pTotTribSN","% Simples Nacional (ME/EPP)"),("indTotTrib","Não informar (MEI/indicador)"),("pTotTrib","% federal/estadual/municipal")]) }}
       {{ inp("p_tot_trib_sn", "% Simples (alíquota efetiva)", ph="6.00") }}
     </div>
-    <div class="grid">{{ inp("p_tot_fed", "% federal") }}{{ inp("p_tot_est", "% estadual") }}{{ inp("p_tot_mun", "% municipal") }}</div>
+    <div class="grade">{{ inp("p_tot_fed", "% federal") }}{{ inp("p_tot_est", "% estadual") }}{{ inp("p_tot_mun", "% municipal") }}</div>
   </details>
 
-  <details {{ 'open' if t.com_ext }}><summary>Comércio exterior</summary>
-    <label><input type="checkbox" name="com_ext" value="1" {{ 'checked' if t.com_ext }}> Informar grupo de comércio exterior (comExt)</label>
-    <div class="grid">
+  <details class="secao" {{ 'open' if t.com_ext }}><summary>Comércio exterior</summary>
+    <label class="flex items-center gap-2 font-normal"><input type="checkbox" name="com_ext" value="1" {{ 'checked' if t.com_ext }}> Informar grupo de comércio exterior (comExt)</label>
+    <div class="grade">
       {{ sel("md_prestacao", "Modo de prestação", [("0","0 - Desconhecido"),("1","1 - Transfronteiriço"),("2","2 - Consumo no Brasil"),("3","3 - Presença comercial no exterior"),("4","4 - Mov. temporário de PF")]) }}
       {{ sel("vinc_prest", "Vínculo", [("0","0 - Sem vínculo"),("1","1 - Controlada"),("2","2 - Controladora"),("3","3 - Coligada"),("4","4 - Matriz"),("5","5 - Filial"),("6","6 - Outro"),("9","9 - Desconhecido")]) }}
     </div>
-    <div class="grid">
+    <div class="grade">
       {{ sel("tp_moeda", "Moeda (BACEN)", [("220","220 - Dólar (USD)"),("978","978 - Euro"),("540","540 - Libra"),(t.tp_moeda, t.tp_moeda ~ " - (atual)")]) }}
       {{ inp("mec_af_comex_p", "Mecanismo fomento (prestador)", "01 = Nenhum") }}
       {{ inp("mec_af_comex_t", "Mecanismo fomento (tomador)", "01 = Nenhum") }}
     </div>
-    <div class="grid">
+    <div class="grade">
       {{ sel("mov_temp_bens", "Mov. temporária de bens", [("0","0 - Desconhecido"),("1","1 - Não"),("2","2 - Vinculada a DI"),("3","3 - Vinculada a DE")]) }}
       {{ sel("mdic", "Enviar ao MDIC", [("0","0 - Não"),("1","1 - Sim")]) }}
     </div>
   </details>
 
-  <details><summary>IBS/CBS (avançado)</summary>
+  <details class="secao"><summary>IBS/CBS (avançado)</summary>
     <label>JSON do grupo IBSCBS<textarea name="ibscbs_json" rows="3" placeholder='{"cIndOp":"...","indDest":"0","CST":"...","cClassTrib":"..."}'>{{ t.ibscbs_json }}</textarea>
     <small>Vazio = não envia (Simples está dispensado do destaque em 2026). Importar um XML preenche sozinho.</small></label>
   </details>
 
-  <button type="submit">Salvar</button>
+  <div class="sticky bottom-0 -mx-5 border-t border-linha bg-papel/90 px-5 py-4 backdrop-blur"><button type="submit" class="btn-primario">Salvar tomador</button></div>
 </form>
 {% endblock %}

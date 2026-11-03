@@ -1,16 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Importar XML de NFS-e</h2>
-<p>No Emissor Nacional, em <em>Notas Emitidas</em>, baixe o <strong>XML</strong> de uma nota que você já emitiu
-para esse cliente (pode selecionar vários arquivos de uma vez). O app:</p>
-<ul>
-  <li>cria o tomador com <strong>todos os códigos e a tributação</strong> daquela nota (o "molde");</li>
-  <li>registra a nota no histórico (entra nos totais);</li>
-  <li>preenche os dados da sua empresa, se ainda estiverem vazios.</li>
-</ul>
-<form method="post" action="/importar" enctype="multipart/form-data">
-  <input type="file" name="arquivos" accept=".xml,text/xml" multiple required>
-  <label><input type="checkbox" name="atualizar_prestador" value="1"> Sobrescrever dados da minha empresa com os do XML</label>
-  <button type="submit">Importar</button>
-</form>
+<h1>Importar XML de NFS-e</h1>
+<div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+  <form method="post" action="/importar" enctype="multipart/form-data" class="secao space-y-5">
+    <label>Arquivos XML
+      <input type="file" name="arquivos" accept=".xml,text/xml" multiple required>
+      <small>Pode selecionar vários de uma vez.</small>
+    </label>
+    <label class="flex items-start gap-2 font-normal"><input type="checkbox" name="atualizar_prestador" value="1" class="mt-1">
+      Sobrescrever dados da minha empresa com os do XML</label>
+    <button type="submit" class="btn-primario">Importar</button>
+  </form>
+  <div class="text-sm">
+    <p>No Emissor Nacional, em <em>Notas Emitidas</em>, baixe o <strong>XML</strong> de uma nota que você já emitiu
+    para esse cliente. O app:</p>
+    <ul class="mt-3 list-disc space-y-2 pl-5 text-mudo marker:text-carimbo">
+      <li>cria o tomador com <strong class="text-tinta">todos os códigos e a tributação</strong> daquela nota (o "molde");</li>
+      <li>registra a nota no histórico (entra nos totais);</li>
+      <li>preenche os dados da sua empresa, se ainda estiverem vazios.</li>
+    </ul>
+  </div>
+</div>
 {% endblock %}

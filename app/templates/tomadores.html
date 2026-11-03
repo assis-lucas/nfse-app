@@ -1,20 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Tomadores</h2>
-<p><a href="/importar" role="button">Importar de XML</a>
-   <a href="/tomadores/novo?exterior=1" role="button" class="secondary">Novo (exterior)</a>
-   <a href="/tomadores/novo" role="button" class="secondary outline">Novo (Brasil)</a></p>
-<table class="striped">
-  <thead><tr><th>Nome</th><th>Doc.</th><th>Tipo</th><th></th></tr></thead>
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>Tomadores</h1>
+  <div class="flex flex-wrap gap-2">
+    <a href="/importar" class="btn-primario">Importar de XML</a>
+    <a href="/tomadores/novo?exterior=1" class="btn-sec">Novo (exterior)</a>
+    <a href="/tomadores/novo" class="btn-sec">Novo (Brasil)</a>
+  </div>
+</div>
+<div class="painel mt-6 overflow-x-auto">
+<table class="tabela">
+  <thead><tr><th>Nome</th><th>Documento</th><th>Tipo</th><th><span class="sr-only">Ações</span></th></tr></thead>
   <tbody>
   {% for t in tomadores %}
   <tr>
-    <td><a href="/tomadores/{{ t.id }}">{{ t.apelido or t.nome }}</a>{% if not t.ativo %} <span class="muted">(inativo)</span>{% endif %}</td>
-    <td>{{ t.tipo_doc }} {{ t.documento }}</td>
+    <td><a href="/tomadores/{{ t.id }}" class="font-medium text-tinta">{{ t.apelido or t.nome }}</a>{% if not t.ativo %} <span class="badge b-cancelada no-underline">inativo</span>{% endif %}</td>
+    <td class="tabular-nums text-mudo">{{ t.tipo_doc }} {{ t.documento }}</td>
     <td>{{ "Exportação" if t.trib_issqn == 3 else "Nacional" }}</td>
-    <td><a href="/emitir?tomador_id={{ t.id }}">emitir</a></td>
+    <td class="text-right"><a href="/emitir?tomador_id={{ t.id }}" class="text-sm">Emitir nota</a></td>
   </tr>
-  {% else %}<tr><td colspan="4" class="muted">Nenhum tomador.</td></tr>{% endfor %}
+  {% else %}<tr><td colspan="4" class="py-10 text-center text-mudo">Nenhum tomador. <a href="/importar">Importe o XML de uma nota</a> para criar o primeiro.</td></tr>{% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}

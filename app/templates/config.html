@@ -1,37 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Configuração</h2>
-<article>
-  <header><strong>Certificado A1</strong></header>
+<h1>Configuração</h1>
+<section class="secao mt-8 max-w-3xl">
+  <h2>Certificado A1</h2>
   {% if cert.ok %}
-    <p>✓ {{ cert.titular }}<br>Válido até <strong>{{ cert.validade }}</strong>{% if cert.vencido %} — <span class="badge b-erro">VENCIDO</span>
-      {% elif cert.vence_em_breve %} — <span class="badge b-hom">vence em {{ cert.dias_restantes }} dias</span>{% endif %}</p>
-    {% if cert.vence_em_breve %}<p class="flash-aviso">Renove o certificado com a sua certificadora e envie o novo arquivo aqui antes do vencimento.</p>{% endif %}
-    {% if cnpj_diverge %}<p class="flash-erro">O CNPJ do certificado ({{ cert.cnpj }}) é diferente do CNPJ da sua empresa ({{ p.cnpj }}). O SEFIN recusa notas assinadas com o certificado de outra empresa.</p>{% endif %}
-  {% else %}<p class="flash-erro">{{ cert.erro }}</p>{% endif %}
-  {% if cert.origem %}<p class="muted">Origem: {{ cert.origem_txt }}</p>{% endif %}
-  <form method="post" action="/config/certificado" enctype="multipart/form-data">
-    <div class="grid">
+    <div class="flex items-start gap-3 rounded-lg bg-papel p-4">
+      <svg viewBox="0 0 20 20" class="mt-0.5 size-5 shrink-0 {{ 'text-prod' if cert.vencido else 'text-ok' }}" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 10.5l2.5 2.5 4.5-5.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="min-w-0 text-sm">
+        <p class="font-medium break-words">{{ cert.titular }}</p>
+        <p class="mt-1 flex flex-wrap items-center gap-2 text-mudo">Válido até <strong class="font-medium text-tinta tabular-nums">{{ cert.validade }}</strong>
+          {% if cert.vencido %}<span class="badge b-erro">VENCIDO</span>
+          {% elif cert.vence_em_breve %}<span class="badge b-hom">vence em {{ cert.dias_restantes }} dias</span>{% endif %}</p>
+        {% if cert.origem %}<p class="mt-1 text-mudo">Origem: {{ cert.origem_txt }}</p>{% endif %}
+      </div>
+    </div>
+    {% if cert.vence_em_breve %}<p class="flash-aviso mb-0">Renove o certificado com a sua certificadora e envie o novo arquivo aqui antes do vencimento.</p>{% endif %}
+    {% if cnpj_diverge %}<p class="flash-erro mb-0">O CNPJ do certificado ({{ cert.cnpj }}) é diferente do CNPJ da sua empresa ({{ p.cnpj }}). O SEFIN recusa notas assinadas com o certificado de outra empresa.</p>{% endif %}
+  {% else %}<p class="flash-erro mb-0">{{ cert.erro }}</p>
+    {% if cert.origem %}<p class="muted">Origem: {{ cert.origem_txt }}</p>{% endif %}{% endif %}
+  <form method="post" action="/config/certificado" enctype="multipart/form-data" class="space-y-4 border-t border-linha pt-5">
+    <div class="grid gap-4 sm:grid-cols-2">
       <label>{{ "Trocar por outro certificado" if cert.ok else "Arquivo do certificado" }} (.pfx ou .p12)
         <input type="file" name="arquivo" accept=".pfx,.p12,application/x-pkcs12" required></label>
       <label>Senha do certificado<input type="password" name="senha" autocomplete="off"></label>
     </div>
-    <button type="submit" class="secondary">Enviar certificado</button>
-    <small class="muted">O arquivo só é gravado se abrir com a senha informada, e substitui o anterior.
-      Fica na pasta de dados do app (<code>certificado.pfx</code> e <code>certificado.senha</code>,
-      legíveis só pelo app) e tem prioridade sobre as variáveis NFSE_CERT_PATH e NFSE_CERT_SENHA.</small>
+    <p class="ajuda">O arquivo só é gravado se abrir com a senha informada, e substitui o anterior.
+      Fica na pasta de dados do app (<code class="font-mono text-xs">certificado.pfx</code> e <code class="font-mono text-xs">certificado.senha</code>,
+      legíveis só pelo app) e tem prioridade sobre as variáveis NFSE_CERT_PATH e NFSE_CERT_SENHA.</p>
+    <button type="submit" class="btn-sec">Enviar certificado</button>
   </form>
-</article>
+</section>
 
-<form method="post" action="/config">
-  <fieldset><legend>Sua empresa (prestador)</legend>
+<form method="post" action="/config" class="mt-5 max-w-3xl space-y-5">
+  <fieldset class="secao"><legend class="float-left w-full">Sua empresa (prestador)</legend>
     <label>Razão social<input name="razao_social" value="{{ p.razao_social }}"></label>
-    <div class="grid">
+    <div class="grade">
       <label>CNPJ<input name="cnpj" value="{{ p.cnpj }}"></label>
       <label>Inscrição municipal<input name="im" value="{{ p.im }}"><small>Deixe vazio se o município não exigir</small></label>
       <label>Município (IBGE)<input name="cod_municipio" value="{{ p.cod_municipio }}"><small>Código IBGE de 7 dígitos (ex.: São Paulo/SP = 3550308)</small></label>
     </div>
-    <div class="grid">
+    <div class="grade">
       <label>Simples Nacional<select name="op_simp_nac">
         {% for v, txt in [(1,"1 - Não optante"),(2,"2 - MEI"),(3,"3 - ME/EPP")] %}<option value="{{ v }}" {{ 'selected' if p.op_simp_nac == v }}>{{ txt }}</option>{% endfor %}</select></label>
       <label>Regime de apuração SN<select name="reg_ap_trib_sn">
@@ -39,8 +47,8 @@
       <label>Regime especial<input name="reg_esp_trib" value="{{ p.reg_esp_trib }}"><small>0 = nenhum</small></label>
     </div>
   </fieldset>
-  <fieldset><legend>Emissão</legend>
-    <div class="grid">
+  <fieldset class="secao"><legend class="float-left w-full">Emissão</legend>
+    <div class="grade">
       <label>Ambiente<select name="ambiente">
         <option value="homologacao" {{ 'selected' if p.ambiente == 'homologacao' }}>Homologação (teste)</option>
         <option value="producao" {{ 'selected' if p.ambiente == 'producao' }}>PRODUÇÃO</option></select></label>
@@ -49,12 +57,12 @@
         <small>Em uso: {{ leiaute }}</small></label>
       <label>Série DPS<input name="serie" value="{{ p.serie }}"></label>
     </div>
-    <div class="grid">
+    <div class="grade">
       <label>Próximo nº DPS (homologação)<input name="prox_ndps_homologacao" value="{{ p.prox_ndps_homologacao }}"></label>
       <label>Próximo nº DPS (produção)<input name="prox_ndps_producao" value="{{ p.prox_ndps_producao }}"></label>
     </div>
-    <label><input type="checkbox" name="confirma_prod" value="1"> Confirmo que já testei em homologação e quero emitir notas reais</label>
+    <label class="flex items-start gap-2 font-normal"><input type="checkbox" name="confirma_prod" class="mt-1" value="1"> Confirmo que já testei em homologação e quero emitir notas reais</label>
   </fieldset>
-  <button type="submit">Salvar</button>
+  <button type="submit" class="btn-primario">Salvar configuração</button>
 </form>
 {% endblock %}
