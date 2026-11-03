@@ -42,6 +42,17 @@ def test_nt009_move_xdescserv_e_finnfse():
     assert "<cNBS>115021000</cNBS><xDescServ>x</xDescServ>" in xml
 
 
+def test_quebra_de_linha_do_navegador_vira_lf():
+    # Textarea manda CRLF; o CR sai como &#13; e o SEFIN rejeita a assinatura (E0714).
+    p, t = _exportacao()
+    t.info_compl = "a\r\nb"
+    xml = montar_dps(p, t, ndps=1, valor="10", valor_moeda="2", competencia=date(2026, 10, 1),
+                     descricao="linha 1\r\nlinha 2\rlinha 3", dh_emi="2026-11-02T10:00:00-03:00")
+    assert "&#13;" not in xml and "\r" not in xml
+    assert "<xDescServ>linha 1\nlinha 2\nlinha 3</xDescServ>" in xml
+    assert "<xInfComp>a\nb</xInfComp>" in xml
+
+
 def test_exportacao_sem_pais_falha():
     p, t = _exportacao()
     t.c_pais_result = ""

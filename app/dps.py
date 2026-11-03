@@ -75,7 +75,9 @@ def id_dps(p: Prestador, ndps: int, serie: str) -> str:
 def _el(parent, tag, texto=None):
     e = etree.SubElement(parent, f"{{{NS}}}{tag}")
     if texto is not None:
-        e.text = str(texto)
+        # Textarea do navegador manda CRLF. O CR só existe no XML como &#13; e o SEFIN
+        # rejeita a assinatura (E0714); LF é a quebra de linha normal do XML.
+        e.text = str(texto).replace("\r\n", "\n").replace("\r", "\n")
     return e
 
 
