@@ -4,9 +4,21 @@ App web simples para emitir NFS-e pela **API oficial do SEFIN Nacional** com o s
 cadastro de tomadores com "molde" fiscal, emissão em 2 cliques, histórico, totais por mês,
 RBT12, CSV, XML e PDF (DANFSe).
 
-Stack: FastAPI + SQLite + Jinja + Pico.css. A DPS é montada por `app/dps.py` (cobre tomador
+Stack: FastAPI + SQLite + Jinja + Tailwind v4. A DPS é montada por `app/dps.py` (cobre tomador
 estrangeiro, exportação e comércio exterior, que as libs prontas não cobrem) e validada contra o
 XSD oficial 1.01. A assinatura XMLDSIG e o transporte mTLS vêm da `PyNFSeNacionalGT`.
+
+## Demo
+
+![Painel com o faturado do ano, o mês a mês e as últimas notas](docs/screenshots/dashboard.png)
+
+| Emitir | Confirmar |
+|---|---|
+| ![Formulário de emissão com o molde do tomador ao lado](docs/screenshots/emitir.png) | ![Confirmação da nota com o carimbo de produção](docs/screenshots/confirmacao.png) |
+
+![Detalhe de uma nota emitida, com PDF e XMLs](docs/screenshots/nota.png)
+
+<sub>Dados fictícios, em modo mock (`NFSE_MOCK=1`) e com certificado autoassinado.</sub>
 
 ## Primeiro uso (ordem importa)
 
