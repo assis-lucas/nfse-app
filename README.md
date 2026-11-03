@@ -136,7 +136,7 @@ com os mesmos comandos.
 ## Estrutura
 
 ```
-app/dps.py        montagem da DPS (leiautes 20260209 e NT 009) + validação XSD
+app/dps.py        montagem da DPS (layouts 20260209 e NT 009) + validação XSD
 app/importer.py   lê XML de NFS-e/DPS → tomador, molde e nota
 app/sefin.py      assinatura, envio, idempotência, modo mock, certificado (leitura e upload)
 app/main.py       rotas/telas
@@ -150,7 +150,7 @@ app/templates/    telas (Jinja2 + Tailwind; fonte IBM Plex, OFL, em app/static/f
 - Cancelamento ainda é feito no Emissor Nacional; depois é só marcar como cancelada no app.
 - Só um prestador (a sua empresa). Quer emitir para vários CNPJs no mesmo app? Abre um Pull Request :)
   Enquanto isso, dá para rodar uma instância por empresa.
-- A validação XSD local só cobre o leiaute de produção. No NT 009 (homologação), quem valida é o SEFIN.
+- A validação XSD local só cobre o layout de produção. No NT 009 (homologação), quem valida é o SEFIN.
 
 ## Licença
 

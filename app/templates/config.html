@@ -52,7 +52,7 @@
       <label>Ambiente<select name="ambiente">
         <option value="homologacao" {{ 'selected' if p.ambiente == 'homologacao' }}>Homologação (teste)</option>
         <option value="producao" {{ 'selected' if p.ambiente == 'producao' }}>PRODUÇÃO</option></select></label>
-      <label>Leiaute XSD<select name="leiaute">
+      <label>Layout XSD<select name="leiaute">
         {% for v, txt in [("auto","Automático"),("20260209","20260209 (produção)"),("20261020","20261020 (NT 009)")] %}<option value="{{ v }}" {{ 'selected' if p.leiaute == v }}>{{ txt }}</option>{% endfor %}</select>
         <small>Em uso: {{ leiaute }}</small></label>
       <label>Série DPS<input name="serie" value="{{ p.serie }}"></label>

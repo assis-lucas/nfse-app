@@ -13,7 +13,7 @@
 
   <header class="border-b border-dashed border-linha px-6 pt-6 pb-5 sm:px-10 sm:pt-8">
     <p class="text-sm text-mudo">Nota fiscal de serviço eletrônica</p>
-    <p class="mt-1 text-sm text-mudo">DPS série {{ p.serie }}, nº {{ ndps }}, leiaute {{ leiaute }}</p>
+    <p class="mt-1 text-sm text-mudo">DPS série {{ p.serie }}, nº {{ ndps }}, layout {{ leiaute }}</p>
     <p class="mt-6 text-sm text-mudo">Valor do serviço</p>
     <p class="text-[40px] leading-[1.1] font-semibold tracking-tight tabular-nums">{{ valor_cents|brl }}</p>
     {% if vm_cents %}<p class="mt-1 text-sm tabular-nums">{{ MOEDAS.get(t.tp_moeda, t.tp_moeda) }} {{ vm_cents|num }} <span class="text-mudo">(câmbio implícito {{ cotacao }})</span></p>{% endif %}
