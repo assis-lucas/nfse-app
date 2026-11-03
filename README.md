@@ -1,40 +1,54 @@
-# NFS-e — emissor próprio (Sistema Nacional)
+<div align="center">
 
-App web simples para emitir NFS-e pela **API oficial do SEFIN Nacional** com o seu certificado A1:
-cadastro de tomadores com "molde" fiscal, emissão em 2 cliques, histórico, totais por mês,
+# NFS-e
+
+**Emissor próprio de NFS-e pela API oficial do SEFIN Nacional, com o seu certificado A1.**
+
+Feito para PJ que fatura todo mês para os mesmos clientes, inclusive no exterior.
+
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+
+[Primeiro uso](#primeiro-uso-ordem-importa) · [Rodar local](#rodar-local) · [Deploy](#deploy-numa-vm-linux) · [Segurança](#segurança)
+
+<img src="docs/img/painel.png" alt="Painel com o faturado do ano, o mês a mês, o total por tomador e as últimas notas" width="100%">
+
+</div>
+
+---
+
+Cadastro de tomadores com "molde" fiscal, emissão em 2 cliques, histórico, totais por mês,
 RBT12, CSV, XML e PDF (DANFSe).
 
 Stack: FastAPI + SQLite + Jinja + Tailwind v4. A DPS é montada por `app/dps.py` (cobre tomador
 estrangeiro, exportação e comércio exterior, que as libs prontas não cobrem) e validada contra o
 XSD oficial 1.01. A assinatura XMLDSIG e o transporte mTLS vêm da `PyNFSeNacionalGT`.
 
-## Demo
+Antes de enviar, a nota aparece como vai para o SEFIN, já validada no XSD e com o ambiente
+carimbado: produção tem validade fiscal, homologação é só teste.
 
-![Painel com o faturado do ano, o mês a mês e as últimas notas](docs/screenshots/dashboard.png)
+<img src="docs/img/confirmacao.png" alt="Tela de confirmação da nota com o carimbo de produção e o XML validado" width="100%">
 
-| Emitir | Confirmar |
-|---|---|
-| ![Formulário de emissão com o molde do tomador ao lado](docs/screenshots/emitir.png) | ![Confirmação da nota com o carimbo de produção](docs/screenshots/confirmacao.png) |
-
-![Detalhe de uma nota emitida, com PDF e XMLs](docs/screenshots/nota.png)
-
-<sub>Dados fictícios, em modo mock (`NFSE_MOCK=1`) e com certificado autoassinado.</sub>
+<sub>Prints com dados fictícios, em modo mock e com certificado autoassinado.</sub>
 
 ## Primeiro uso (ordem importa)
 
-1. Em *Config → Certificado A1*, **envie o seu certificado** (arquivo `.pfx`/`.p12` do e-CNPJ) e a
+1. Em *Configuração → Certificado A1*, **envie o seu certificado** (arquivo `.pfx`/`.p12` do e-CNPJ) e a
    senha dele. O app só grava se o arquivo abrir com essa senha e mostra titular, validade e origem.
 2. **Importe o XML de uma nota que você já emitiu** (Emissor Nacional → Notas Emitidas → baixar XML)
    em *Tomadores → Importar de XML*. Isso cria o tomador com exatamente os códigos, a tributação e o
    grupo de comércio exterior da nota que já foi aceita, e preenche sua empresa.
-3. Em *Config*, confira CNPJ, município e regime. O ambiente começa em **Homologação**.
+3. Em *Configuração*, confira CNPJ, município e regime. O ambiente começa em **Homologação**.
 4. Emita uma nota de teste. Ela vai para a *produção restrita* (sem validade jurídica).
    Se vier rejeição, a mensagem do SEFIN (código E0xxx) aparece na tela; ajuste o molde do tomador.
-5. Quando o teste passar, mude para **Produção** em *Config* (exige marcar a confirmação).
+5. Quando o teste passar, mude para **Produção** em *Configuração* (exige marcar a confirmação).
 
 A partir daí, cada mês é: botão "+ Nota para X" → valor → revisar → emitir.
 
-Quando faltarem 90 dias ou menos para o certificado vencer, o painel e a tela *Config* mostram um aviso.
+Quando faltarem 90 dias ou menos para o certificado vencer, o painel e a tela *Configuração* mostram um aviso.
 Renovou? Envie o novo `.pfx` pela mesma tela: ele substitui o anterior na hora, sem reiniciar.
 A tela também avisa se o CNPJ do certificado for diferente do CNPJ configurado da sua empresa.
 
@@ -54,7 +68,7 @@ A tela também avisa se o CNPJ do certificado for diferente do CNPJ configurado 
     certificado e a senha**: trate backups dessa pasta como você trataria o próprio `.pfx`. Ficar
     fora do SQLite evita que a senha vá junto em cópias do banco.
   - Compatibilidade: `NFSE_CERT_PATH`/`NFSE_CERT_SENHA` continuam funcionando. Se existir um
-    certificado enviado pela interface, **ele tem prioridade** sobre as variáveis (a tela *Config*
+    certificado enviado pela interface, **ele tem prioridade** sobre as variáveis (a tela *Configuração*
     mostra qual está em uso). Para voltar às variáveis, apague `data/certificado.senha`
     (e confira se `NFSE_CERT_PATH` aponta para um `.pfx` que ainda existe).
 - **O app não tem login.** Quem alcançar a porta consegue emitir notas com o seu certificado.
