@@ -5,9 +5,12 @@ Emissor Nacional e importe aqui — o molde sai idêntico ao que já foi aceito.
 from __future__ import annotations
 
 import json
+import re
 from datetime import date
 
 from lxml import etree
+
+from .dps import MESES
 
 
 def _f(node, path: str) -> str:
@@ -22,6 +25,17 @@ def _has(node, path: str) -> bool:
     if node is None:
         return False
     return node.find("/".join(f"{{*}}{p}" for p in path.split("/"))) is not None
+
+
+def molde_descricao(desc: str, competencia: date) -> str:
+    """Descrição de uma nota → molde: o mês/ano da competência vira placeholder, para a nota do
+    mês seguinte não sair com o mês antigo. Chaves literais são escapadas (o molde passa por format)."""
+    s = desc.replace("{", "{{").replace("}", "}}")
+    s = s.replace(competencia.strftime("%m/%Y"), "{competencia}")
+    s = re.sub(rf"\b{MESES[competencia.month - 1]}\b", "{mes_nome}", s, flags=re.IGNORECASE)
+    if "{mes_nome}" in s:      # o ano sozinho só vira placeholder quando acompanha o nome do mês
+        s = re.sub(rf"\b{competencia.year}\b", "{ano}", s)
+    return s
 
 
 def parse(xml: bytes | str) -> dict:
@@ -132,4 +146,5 @@ def parse(xml: bytes | str) -> dict:
         "numero_nfse": _f(inf_nfse, "nNFSe"),
         "is_nfse": inf_nfse is not None,
     }
-    return {"prestador": prestador, "tomador": t, "nota": nota, "descricao_original": desc}
+    return {"prestador": prestador, "tomador": t, "nota": nota,
+            "descricao_molde": molde_descricao(desc, nota["competencia"])}

@@ -398,7 +398,7 @@ async def importar(request: Request, arquivos: list[UploadFile], atualizar_prest
             t = Tomador()
             _aplicar(t, td)
             # molde de descrição: a descrição original, com o mês trocado por placeholder quando der
-            t.descricao_padrao = d["descricao_original"]
+            t.descricao_padrao = d["descricao_molde"]
             s.add(t)
             s.flush()
             msgs.append(f"tomador novo: {t.nome}")

@@ -7,7 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.db import Prestador, Tomador
-from app.dps import montar_dps, validar_xsd
+from app.dps import montar_dps, render_descricao, validar_xsd
+from app.importer import molde_descricao
 from app.main import app
 
 
@@ -86,3 +87,15 @@ def test_fluxo_completo():
         assert "Nada novo" in r.text
         assert "ACME" in c.get("/notas.csv").text
         assert c.get("/").status_code == 200
+
+
+def test_molde_descricao_troca_mes_e_ano_da_competencia():
+    out = date(2026, 10, 30)
+    molde = molde_descricao("Software development services - outubro/2026", out)
+    assert molde == "Software development services - {mes_nome}/{ano}"
+    assert render_descricao(molde, date(2026, 11, 3)) == "Software development services - novembro/2026"
+    assert molde_descricao("HORAS DEV | OUTUBRO, 10/2026", out) == "HORAS DEV | {mes_nome}, {competencia}"
+    # sem o nome do mês, o ano fica; chaves literais não quebram o format
+    assert molde_descricao("Contrato 2026 {fase 2}", out) == "Contrato 2026 {{fase 2}}"
+    assert render_descricao(molde_descricao("Contrato 2026 {fase 2}", out), out) == "Contrato 2026 {fase 2}"
+
