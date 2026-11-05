@@ -21,8 +21,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import dps as dpsmod
 from . import importer, sefin
-from .db import (DATA_DIR, Nota, Session, Tomador, get_session, hora_local, init_db, prestador,
-                 select)
+from .db import (DATA_DIR, Nota, Session, Tomador, get_session, hoje, hora_local, init_db,
+                 prestador, select)
 from .seguranca import ProtecaoOrigem
 
 # Assina o cookie de sessão (mensagens flash e token anti-duplicidade da emissão).
@@ -93,8 +93,8 @@ def _notas_validas(s: Session, ambiente="producao"):
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, ano: int | None = None, s: Session = Depends(get_session)):
-    hoje = date.today()
-    ano = ano or hoje.year
+    dia = hoje()
+    ano = ano or dia.year
     p = prestador(s)
     notas = _notas_validas(s)
     por_mes = defaultdict(int)
@@ -104,12 +104,12 @@ def dashboard(request: Request, ano: int | None = None, s: Session = Depends(get
             por_mes[n.competencia.month] += n.valor_cents
             por_tomador[n.tomador_nome] += n.valor_cents
     # RBT12: receita bruta dos 12 meses anteriores ao mês corrente (base do Simples)
-    ini = date(hoje.year - 1, hoje.month, 1)
-    fim = date(hoje.year, hoje.month, 1)
+    ini = date(dia.year - 1, dia.month, 1)
+    fim = date(dia.year, dia.month, 1)
     rbt12 = sum(n.valor_cents for n in notas if ini <= n.competencia < fim)
     ultimas = s.exec(select(Nota).order_by(Nota.id.desc()).limit(8)).all()
     tomadores = s.exec(select(Tomador).where(Tomador.ativo == True)).all()  # noqa: E712
-    anos = sorted({n.competencia.year for n in notas} | {hoje.year}, reverse=True)
+    anos = sorted({n.competencia.year for n in notas} | {dia.year}, reverse=True)
     return render(request, "dashboard.html", p=p, ano=ano, anos=anos,
                   meses=[(m, dpsmod.MESES[m - 1], por_mes.get(m, 0)) for m in range(1, 13)],
                   total_ano=sum(por_mes.values()), rbt12=rbt12,
@@ -128,7 +128,7 @@ def emitir_form(request: Request, tomador_id: int | None = None, s: Session = De
     ultima = s.exec(select(Nota).where(Nota.tomador_id == t.id, Nota.status == "emitida")
                     .order_by(Nota.id.desc())).first()
     return render(request, "emitir.html", tomadores=tomadores, t=t, ultima=ultima,
-                  hoje=date.today().isoformat(), p=prestador(s))
+                  hoje=hoje().isoformat(), p=prestador(s))
 
 
 PTAX = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"
@@ -156,7 +156,7 @@ def cotacao(moeda: str, data: str):
     if sigla == "BRL":
         return {"taxa": "1.0000", "data": None}
     try:
-        dia = min(date.fromisoformat(data), date.today())
+        dia = min(date.fromisoformat(data), hoje())
     except ValueError:
         return JSONResponse({"erro": "Preencha a data de competência para buscar a cotação."}, 400)
     try:

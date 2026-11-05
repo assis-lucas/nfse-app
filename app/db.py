@@ -18,6 +18,11 @@ def agora() -> datetime:
     return datetime.now(TZ)
 
 
+def hoje() -> date:
+    """Data de hoje em São Paulo (o servidor, ex.: Docker, costuma estar em UTC)."""
+    return agora().date()
+
+
 def hora_local(dt: datetime) -> datetime:
     """O banco guarda e devolve em UTC; para mostrar, converte para o horário de Brasília."""
     if dt.tzinfo is None:
